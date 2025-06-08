@@ -1,0 +1,410 @@
+
+<?php 
+ session_start();
+ $sweetAlertConfig = ""; 
+ if (!isset($_SESSION['OwnerID'])) {
+   header('Location: login.php');
+   exit();
+ }
+?>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <title>
+   Coffee Menu with Add Item Functionality
+  </title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <!-- SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+   body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Scrollbar for menu container */
+    #menu-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    #menu-scroll::-webkit-scrollbar-thumb {
+      background-color: #c4b09a;
+      border-radius: 10px;
+    }
+  </style>
+ </head>
+ <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button">
+    <i class="fas fa-home"></i>
+   </button>
+   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button">
+    <i class="fas fa-shopping-cart"></i>
+   </button>
+   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button">
+    <i class="fas fa-box"></i>
+   </button>
+   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button">
+    <i class="fas fa-chart-bar"></i>
+   </button>
+   <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'">
+     <i class="fas fa-users"></i>
+   </button>
+   <button aria-label="Menu" class="text-[#4B2E0E] text-xl" title="Menu" type="button">
+    <i class="fas fa-bars"></i>
+   </button>
+   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
+    <i class="fas fa-cog"></i>
+   </button>
+   <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
+    <i class="fas fa-sign-out-alt"></i>
+   </button>
+  </aside>
+  <!-- Main content -->
+  <main class="flex-1 p-6 relative flex flex-col">
+   <!-- Background image with overlay -->
+   <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
+   <!-- Header and search -->
+   <header class="mb-4">
+    <p class="text-xs text-gray-400 mb-0.5">
+     Welcome to Lorem, Arnain
+    </p>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">
+     Name's Homepage
+    </h1>
+    <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
+     <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
+     <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
+      <i class="fas fa-search"></i>
+     </button>
+    </form>
+   </header>
+   <!-- Category buttons -->
+   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl">
+    <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md" type="button">
+     <i class="fas fa-coffee"></i>
+     Coffee
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;"></i>
+     Non Coffee
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
+     <i class="fas fa-leaf" style="opacity: 0.3;"></i>
+     Matcha
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
+     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;"></i>
+     Frappe
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;"></i>
+     Signatures
+    </button>
+    <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">
+     See more...
+    </a>
+   </nav>
+   <!-- Coffee Menu Grid -->
+   <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items">
+     <!-- Items will be generated by JS -->
+    </div>
+   </section>
+  </main>
+  <!-- Order summary -->
+  <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
+   <div>
+    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">
+     DINE IN/TAKE OUT
+    </button>
+    <h2 class="font-semibold text-[#4B2E0E] mb-2">
+     My Order:
+    </h2>
+    <div class="text-xs text-gray-700" id="order-list">
+     <p class="font-semibold mb-1">
+      CATEGORY
+     </p>
+     <!-- Order items inserted here -->
+    </div>
+   </div>
+   <div class="mt-6 text-center">
+    <p class="font-semibold mb-1">
+     Total:
+    </p>
+    <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total">
+     <span>
+      ₱
+     </span>
+     0.00
+    </p>
+   </div>
+   <div class="mt-6 flex gap-4">
+    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="button" id="confirm-btn" disabled>
+     Confirm
+    </button>
+    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>
+     Cancel
+    </button>
+   </div>
+  </aside>
+  <script>
+   const menuData = [
+    {
+      id: "hot-americano",
+      name: "Hot Americano",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
+      alt: "White ceramic cup filled with hot Americano coffee on white background"
+    },
+    {
+      id: "caramel-macchiato",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background"
+    },
+    {
+      id: "spanish-latte",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+    },
+    {
+      id: "white-mocha",
+      name: "White Mocha",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/c5d0393f-84a8-42bc-3451-8d0548bcb28a.jpg",
+      alt: "Glass cup filled with white mocha coffee with whipped cream on top on white background"
+    },
+    {
+      id: "caramel-macchiato-2",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/dc4a018e-cae9-4b7e-2a2c-7512bab59c5b.jpg",
+      alt: "White ceramic cup filled with caramel macchiato coffee on white background"
+    },
+    {
+      id: "spanish-latte-2",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+    },
+    {
+      id: "hot-americano-2",
+      name: "Hot Americano",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
+      alt: "White ceramic cup filled with hot Americano coffee on white background"
+    },
+    {
+      id: "caramel-macchiato-3",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background"
+    },
+    {
+      id: "spanish-latte-3",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+    }
+   ];
+
+   const menuContainer = document.getElementById("menu-items");
+   const orderList = document.getElementById("order-list");
+   const orderTotalEl = document.getElementById("order-total");
+   const confirmBtn = document.getElementById("confirm-btn");
+   const cancelBtn = document.getElementById("cancel-btn");
+
+   // Order state: { id: { ...item, quantity } }
+   let order = {};
+
+   // Render menu items
+   function renderMenu() {
+     menuContainer.innerHTML = "";
+     menuData.forEach(item => {
+       const isInOrder = order[item.id] !== undefined;
+       const quantity = isInOrder ? order[item.id].quantity : 0;
+
+       const article = document.createElement("article");
+       article.setAttribute("aria-label", `${item.name} coffee item`);
+       article.className = "bg-white rounded-lg shadow-md p-3 flex flex-col items-center";
+
+       const img = document.createElement("img");
+       img.src = item.img;
+       img.alt = item.alt;
+       img.className = "mb-2";
+       img.width = 80;
+       img.height = 80;
+
+       const h3 = document.createElement("h3");
+       h3.className = "font-semibold text-sm text-[#4B2E0E] mb-1 text-center";
+       h3.textContent = item.name;
+
+       const pDesc = document.createElement("p");
+       pDesc.className = "text-[9px] text-gray-400 text-center mb-1 leading-[1.1]";
+       pDesc.textContent = item.description;
+
+       const pPrice = document.createElement("p");
+       pPrice.className = "font-semibold text-xs text-[#4B2E0E] mb-2";
+       pPrice.textContent = `₱ ${item.price.toFixed(2)}`;
+
+       article.appendChild(img);
+       article.appendChild(h3);
+       article.appendChild(pDesc);
+       article.appendChild(pPrice);
+
+       if (isInOrder) {
+         // Show quantity controls
+         const controls = document.createElement("div");
+         controls.className = "flex items-center gap-2";
+
+         const btnMinus = document.createElement("button");
+         btnMinus.type = "button";
+         btnMinus.className = "bg-gray-300 rounded-full w-7 h-7 text-gray-600 disabled:opacity-50";
+         btnMinus.textContent = "-";
+         btnMinus.setAttribute("aria-label", `Decrease quantity of ${item.name}`);
+         btnMinus.disabled = quantity <= 1;
+         btnMinus.addEventListener("click", () => {
+           updateQuantity(item.id, quantity - 1);
+         });
+
+         const spanQty = document.createElement("span");
+         spanQty.className = "text-sm font-semibold text-[#4B2E0E]";
+         spanQty.textContent = quantity;
+
+         const btnPlus = document.createElement("button");
+         btnPlus.type = "button";
+         btnPlus.className = "bg-[#C4A07A] rounded-full w-7 h-7 text-white font-bold";
+         btnPlus.textContent = "+";
+         btnPlus.setAttribute("aria-label", `Increase quantity of ${item.name}`);
+         btnPlus.addEventListener("click", () => {
+           updateQuantity(item.id, quantity + 1);
+         });
+
+         controls.appendChild(btnMinus);
+         controls.appendChild(spanQty);
+         controls.appendChild(btnPlus);
+
+         article.appendChild(controls);
+       } else {
+         // Show Add Item button
+         const addBtn = document.createElement("button");
+         addBtn.type = "button";
+         addBtn.className = "bg-[#C4A07A] rounded-full w-full py-1 text-xs font-semibold text-white";
+         addBtn.textContent = "Add Item";
+         addBtn.addEventListener("click", () => {
+           addToOrder(item.id);
+         });
+         article.appendChild(addBtn);
+       }
+
+       menuContainer.appendChild(article);
+     });
+   }
+
+   // Add item to order with quantity 1
+   function addToOrder(id) {
+     if (!order[id]) {
+       const item = menuData.find(i => i.id === id);
+       order[id] = {...item, quantity: 1};
+       renderMenu();
+       renderOrder();
+     }
+   }
+
+   // Update quantity of an order item
+   function updateQuantity(id, newQty) {
+     if (newQty < 1) {
+       delete order[id];
+     } else {
+       order[id].quantity = newQty;
+     }
+     renderMenu();
+     renderOrder();
+   }
+
+   // Render order summary
+   function renderOrder() {
+     // Clear previous order items except CATEGORY label
+     orderList.innerHTML = '<p class="font-semibold mb-1">CATEGORY</p>';
+
+     const entries = Object.values(order);
+     if (entries.length === 0) {
+       orderTotalEl.textContent = "₱ 0.00";
+       confirmBtn.disabled = true;
+       cancelBtn.disabled = true;
+       return;
+     }
+
+     let total = 0;
+     entries.forEach(item => {
+       total += item.price * item.quantity;
+
+       const div = document.createElement("div");
+       div.className = "flex justify-between mb-1";
+
+       const spanName = document.createElement("span");
+       spanName.className = "font-semibold";
+       spanName.textContent = item.name;
+
+       const spanPriceQty = document.createElement("span");
+       spanPriceQty.innerHTML = `<span class="font-semibold">₱ ${item.price.toFixed(2)}</span><span class="ml-1">x${item.quantity}</span>`;
+
+       div.appendChild(spanName);
+       div.appendChild(spanPriceQty);
+
+       orderList.appendChild(div);
+     });
+
+     orderTotalEl.innerHTML = `<span>₱</span> ${total.toFixed(2)}`;
+     confirmBtn.disabled = false;
+     cancelBtn.disabled = false;
+   }
+
+   // Cancel order
+   cancelBtn.addEventListener("click", () => {
+     order = {};
+     renderMenu();
+     renderOrder();
+   });
+
+   // Initial render
+   renderMenu();
+   renderOrder();
+
+   // SweetAlert2 logout
+   document.getElementById("logout-btn").addEventListener("click", () => {
+     Swal.fire({
+       title: 'Are you sure you want to log out?',
+       icon: 'warning',
+       showCancelButton: true,
+       confirmButtonColor: '#4B2E0E',
+       cancelButtonColor: '#d33',
+       confirmButtonText: 'Yes, log out',
+       cancelButtonText: 'Cancel'
+     }).then((result) => {
+       if (result.isConfirmed) {
+         window.location.href = "logout.php";
+       }
+     });
+   });
+
+  </script>
+ </body>
+</html>

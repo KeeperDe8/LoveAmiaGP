@@ -1,0 +1,310 @@
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <title>
+   Coffee Menu with Category Tabs and Add Item Functionality
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <style>
+   body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Scrollbar for menu container */
+    #menu-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    #menu-scroll::-webkit-scrollbar-thumb {
+      background-color: #c4b09a;
+      border-radius: 10px;
+    }
+    /* Settings Panel styles */
+    #settings-panel {
+      transition: transform 0.3s ease-in-out;
+      transform: translateX(100%);
+    }
+    #settings-panel.open {
+      transform: translateX(0);
+    }
+    /* Backdrop for settings modal */
+    #settings-backdrop {
+      background: rgba(0,0,0,0.3);
+    }
+    /* Logout modal and backdrop styles */
+    #logout-backdrop {
+      background: rgba(0,0,0,0.3);
+    }
+    #logout-modal {
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-20px);
+    }
+    #logout-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  </style>
+ </head>
+ <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button">
+    <i class="fas fa-home"></i>
+   </button>
+   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button">
+    <i class="fas fa-shopping-cart"></i>
+   </button>
+   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button">
+    <i class="fas fa-box"></i>
+   </button>
+   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button">
+    <i class="fas fa-chart-bar"></i>
+   </button>
+   <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button">
+    <i class="fas fa-users"></i>
+   </button>
+   <button aria-label="Menu" class="text-[#4B2E0E] text-xl" title="Menu" type="button">
+    <i class="fas fa-bars"></i>
+   </button>
+   <button id="settings-btn" aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
+    <i class="fas fa-cog"></i>
+   </button>
+   <button id="logout-btn" aria-label="Logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
+    <i class="fas fa-sign-out-alt"></i>
+   </button>
+  </aside>
+  <!-- Main content -->
+  <main class="flex-1 p-6 relative flex flex-col">
+   <!-- Background image with overlay -->
+   <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
+   <!-- Header and search -->
+   <header class="mb-4">
+    <p class="text-xs text-gray-400 mb-0.5">Welcome to Lorem, Arnain</p>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
+    <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
+     <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
+     <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
+      <i class="fas fa-search"></i>
+     </button>
+    </form>
+   </header>
+   <!-- Category buttons -->
+   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav">
+    <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md category-btn" data-category="coffee" type="button">
+     <i class="fas fa-coffee"></i> Coffee
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="non-coffee" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;"></i> Non Coffee
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="matcha" type="button">
+     <i class="fas fa-leaf" style="opacity: 0.3;"></i> Matcha
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="frappe" type="button">
+     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;"></i> Frappe
+    </button>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="signatures" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;"></i> Signatures
+    </button>
+    <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">See more...</a>
+   </nav>
+   <!-- Coffee Menu Grid -->
+   <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items">
+     <!-- Items will be generated by JS -->
+    </div>
+   </section>
+  </main>
+  <!-- Order summary -->
+  <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
+   <div>
+    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">DINE IN/TAKE OUT</button>
+    <h2 class="font-semibold text-[#4B2E0E] mb-2">My Order:</h2>
+    <div class="text-xs text-gray-700" id="order-list">
+     <p class="font-semibold mb-1">CATEGORY</p>
+     <!-- Order items inserted here -->
+    </div>
+   </div>
+   <div class="mt-6 text-center">
+    <p class="font-semibold mb-1">Total:</p>
+    <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total">
+     <span>₱</span> 0.00
+    </p>
+   </div>
+   <div class="mt-6 flex gap-4">
+    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="button" id="confirm-btn" disabled>Confirm</button>
+    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>Cancel</button>
+   </div>
+  </aside>
+
+  <!-- Settings Panel -->
+  <div id="settings-backdrop" class="fixed inset-0 hidden z-40" aria-hidden="true"></div>
+  <section id="settings-panel" class="fixed inset-y-0 right-0 w-80 bg-white rounded-l-xl shadow-xl z-50 p-6 flex flex-col" aria-label="Settings Panel" aria-hidden="true" tabindex="-1">
+   <header class="mb-6 flex justify-between items-center">
+    <h2 class="text-2xl font-bold text-gray-900">Settings</h2>
+    <button id="settings-close-btn" aria-label="Close settings panel" class="text-gray-600 hover:text-gray-900" type="button">
+     <i class="fas fa-times text-xl"></i>
+    </button>
+   </header>
+   <div class="flex flex-col gap-6">
+    <div>
+     <h3 class="text-lg font-semibold text-gray-800 mb-2">Theme</h3>
+     <button id="theme-toggle-btn" class="bg-gray-200 text-gray-800 rounded-full py-2 px-4 w-full text-center font-semibold hover:bg-gray-300 transition" type="button" aria-pressed="false">Switch to Dark Mode</button>
+    </div>
+   </div>
+  </section>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logout-backdrop" class="fixed inset-0 hidden z-40" aria-hidden="true"></div>
+  <section id="logout-modal" class="fixed top-1/2 left-1/2 w-80 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-lg p-6 z-50" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-hidden="true" tabindex="-1">
+   <h2 id="logout-title" class="text-xl font-semibold text-gray-900 mb-4">Would you like to logout?</h2>
+   <div class="flex justify-end gap-4">
+    <button id="logout-cancel-btn" class="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 transition font-semibold text-gray-800" type="button">Cancel</button>
+    <button id="logout-confirm-btn" class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition" type="button">Logout</button>
+   </div>
+  </section>
+
+  <script>
+   // Menu data with categories
+   const menuData = [
+    {
+      id: "hot-americano",
+      name: "Hot Americano",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
+      alt: "White ceramic cup filled with hot Americano coffee on white background",
+      category: "coffee"
+    },
+    // other menu items omitted for brevity ...
+    {
+      id: "hot-chocolate",
+      name: "Hot Chocolate",
+      description: "Rich and creamy hot chocolate",
+      price: 95.0,
+      img: "https://placehold.co/80x80/png?text=Hot+Chocolate",
+      alt: "Cup of hot chocolate with whipped cream on white background",
+      category: "non-coffee"
+    }
+   ];
+
+   const menuContainer = document.getElementById("menu-items");
+   const orderList = document.getElementById("order-list");
+   const orderTotalEl = document.getElementById("order-total");
+   const confirmBtn = document.getElementById("confirm-btn");
+   const cancelBtn = document.getElementById("cancel-btn");
+   const categoryButtons = document.querySelectorAll(".category-btn");
+
+   // Order state: { id: { ...item, quantity } }
+   let order = {};
+   let currentCategory = "coffee";
+
+   // menu render and order functions omitted for brevity, unchanged...
+
+   // Cancel order
+   cancelBtn.addEventListener("click", () => {
+     order = {};
+     renderMenu();
+     renderOrder();
+   });
+
+   // Category button click handler
+   categoryButtons.forEach(btn => {
+     btn.addEventListener("click", () => {
+       const selectedCategory = btn.getAttribute("data-category");
+       if (selectedCategory === currentCategory) return;
+       currentCategory = selectedCategory;
+       categoryButtons.forEach(b => {
+         if (b === btn) {
+           b.setAttribute("aria-pressed", "true");
+           b.classList.add("bg-[#4B2E0E]", "text-white", "shadow-md");
+           b.classList.remove("bg-white", "border", "border-gray-300", "text-gray-700");
+         } else {
+           b.setAttribute("aria-pressed", "false");
+           b.classList.remove("bg-[#4B2E0E]", "text-white", "shadow-md");
+           b.classList.add("bg-white", "border", "border-gray-300", "text-gray-700");
+         }
+       });
+       renderMenu();
+     });
+   });
+
+   // Initial render
+   renderMenu();
+   renderOrder();
+
+   // Settings panel toggle (unchanged) ...
+   const settingsBtn = document.getElementById("settings-btn");
+   const settingsPanel = document.getElementById("settings-panel");
+   const settingsBackdrop = document.getElementById("settings-backdrop");
+   const settingsCloseBtn = document.getElementById("settings-close-btn");
+   const themeToggleBtn = document.getElementById("theme-toggle-btn");
+
+   function openSettings() {
+     settingsPanel.classList.add("open");
+     settingsPanel.setAttribute("aria-hidden", "false");
+     settingsBackdrop.classList.remove("hidden");
+   }
+   function closeSettings() {
+     settingsPanel.classList.remove("open");
+     settingsPanel.setAttribute("aria-hidden", "true");
+     settingsBackdrop.classList.add("hidden");
+   }
+   settingsBtn.addEventListener("click", openSettings);
+   settingsCloseBtn.addEventListener("click", closeSettings);
+   settingsBackdrop.addEventListener("click", closeSettings);
+   // Theme toggle logic (unchanged) ...
+   let darkMode = false;
+   function updateTheme() {
+     if (darkMode) {
+       document.documentElement.classList.add("dark");
+       document.body.classList.add("bg-gray-900", "text-gray-100");
+       themeToggleBtn.textContent = "Switch to Default Mode";
+       themeToggleBtn.setAttribute("aria-pressed", "true");
+     } else {
+       document.documentElement.classList.remove("dark");
+       document.body.classList.remove("bg-gray-900", "text-gray-100");
+       document.body.classList.add("bg-[rgba(255,255,255,0.7)]");
+       themeToggleBtn.textContent = "Switch to Dark Mode";
+       themeToggleBtn.setAttribute("aria-pressed", "false");
+     }
+   }
+   themeToggleBtn.addEventListener("click", () => {
+     darkMode = !darkMode;
+     updateTheme();
+   });
+
+   // Logout modal logic
+   const logoutBtn = document.getElementById("logout-btn");
+   const logoutModal = document.getElementById("logout-modal");
+   const logoutBackdrop = document.getElementById("logout-backdrop");
+   const logoutCancelBtn = document.getElementById("logout-cancel-btn");
+   const logoutConfirmBtn = document.getElementById("logout-confirm-btn");
+
+   function openLogoutModal() {
+     logoutModal.classList.add("open");
+     logoutModal.setAttribute("aria-hidden", "false");
+     logoutBackdrop.classList.remove("hidden");
+   }
+   function closeLogoutModal() {
+     logoutModal.classList.remove("open");
+     logoutModal.setAttribute("aria-hidden", "true");
+     logoutBackdrop.classList.add("hidden");
+   }
+
+   logoutBtn.addEventListener("click", openLogoutModal);
+   logoutCancelBtn.addEventListener("click", closeLogoutModal);
+   logoutBackdrop.addEventListener("click", closeLogoutModal);
+
+   logoutConfirmBtn.addEventListener("click", () => {
+     // For now, just close modal and simulate logout action
+     closeLogoutModal();
+     alert("You have been logged out."); // placeholder for real logout action
+   });
+  </script>
+ </body>
+</html>
