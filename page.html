@@ -1,3 +1,5 @@
+
+
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -21,61 +23,42 @@
       background-color: #c4b09a;
       border-radius: 10px;
     }
-    /* Settings Panel styles */
-    #settings-panel {
-      transition: transform 0.3s ease-in-out;
-      transform: translateX(100%);
-    }
-    #settings-panel.open {
-      transform: translateX(0);
-    }
-    /* Backdrop for settings modal */
-    #settings-backdrop {
-      background: rgba(0,0,0,0.3);
-    }
-    /* Logout modal and backdrop styles */
-    #logout-backdrop {
-      background: rgba(0,0,0,0.3);
-    }
-    #logout-modal {
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-20px);
-    }
-    #logout-modal.open {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0);
-    }
   </style>
  </head>
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
    <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button">
-    <i class="fas fa-home"></i>
+    <i class="fas fa-home">
+    </i>
    </button>
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button">
-    <i class="fas fa-shopping-cart"></i>
+    <i class="fas fa-shopping-cart">
+    </i>
    </button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button">
-    <i class="fas fa-box"></i>
+    <i class="fas fa-box">
+    </i>
    </button>
    <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button">
-    <i class="fas fa-chart-bar"></i>
+    <i class="fas fa-chart-bar">
+    </i>
    </button>
    <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button">
-    <i class="fas fa-users"></i>
+    <i class="fas fa-users">
+    </i>
    </button>
    <button aria-label="Menu" class="text-[#4B2E0E] text-xl" title="Menu" type="button">
-    <i class="fas fa-bars"></i>
+    <i class="fas fa-bars">
+    </i>
    </button>
-   <button id="settings-btn" aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
-    <i class="fas fa-cog"></i>
+   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
+    <i class="fas fa-cog">
+    </i>
    </button>
-   <button id="logout-btn" aria-label="Logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
-    <i class="fas fa-sign-out-alt"></i>
+   <button aria-label="Logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
+    <i class="fas fa-sign-out-alt">
+    </i>
    </button>
   </aside>
   <!-- Main content -->
@@ -84,33 +67,50 @@
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <!-- Header and search -->
    <header class="mb-4">
-    <p class="text-xs text-gray-400 mb-0.5">Welcome to Lorem, Arnain</p>
-    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
+    <p class="text-xs text-gray-400 mb-0.5">
+     Welcome to Lorem, Arnain
+    </p>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">
+     Name's Homepage
+    </h1>
     <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
      <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
      <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
-      <i class="fas fa-search"></i>
+      <i class="fas fa-search">
+      </i>
      </button>
     </form>
    </header>
    <!-- Category buttons -->
    <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav">
     <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md category-btn" data-category="coffee" type="button">
-     <i class="fas fa-coffee"></i> Coffee
+     <i class="fas fa-coffee">
+     </i>
+     Coffee
     </button>
     <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="non-coffee" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;"></i> Non Coffee
+     <i class="fas fa-coffee" style="opacity: 0.3;">
+     </i>
+     Non Coffee
     </button>
     <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="matcha" type="button">
-     <i class="fas fa-leaf" style="opacity: 0.3;"></i> Matcha
+     <i class="fas fa-leaf" style="opacity: 0.3;">
+     </i>
+     Matcha
     </button>
     <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="frappe" type="button">
-     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;"></i> Frappe
+     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;">
+     </i>
+     Frappe
     </button>
     <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="signatures" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;"></i> Signatures
+     <i class="fas fa-coffee" style="opacity: 0.3;">
+     </i>
+     Signatures
     </button>
-    <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">See more...</a>
+    <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">
+     See more...
+    </a>
    </nav>
    <!-- Coffee Menu Grid -->
    <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
@@ -122,52 +122,39 @@
   <!-- Order summary -->
   <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
    <div>
-    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">DINE IN/TAKE OUT</button>
-    <h2 class="font-semibold text-[#4B2E0E] mb-2">My Order:</h2>
+    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">
+     DINE IN/TAKE OUT
+    </button>
+    <h2 class="font-semibold text-[#4B2E0E] mb-2">
+     My Order:
+    </h2>
     <div class="text-xs text-gray-700" id="order-list">
-     <p class="font-semibold mb-1">CATEGORY</p>
+     <p class="font-semibold mb-1">
+      CATEGORY
+     </p>
      <!-- Order items inserted here -->
     </div>
    </div>
    <div class="mt-6 text-center">
-    <p class="font-semibold mb-1">Total:</p>
+    <p class="font-semibold mb-1">
+     Total:
+    </p>
     <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total">
-     <span>₱</span> 0.00
+     <span>
+      ₱
+     </span>
+     0.00
     </p>
    </div>
    <div class="mt-6 flex gap-4">
-    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="button" id="confirm-btn" disabled>Confirm</button>
-    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>Cancel</button>
+    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="button" id="confirm-btn" disabled>
+     Confirm
+    </button>
+    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>
+     Cancel
+    </button>
    </div>
   </aside>
-
-  <!-- Settings Panel -->
-  <div id="settings-backdrop" class="fixed inset-0 hidden z-40" aria-hidden="true"></div>
-  <section id="settings-panel" class="fixed inset-y-0 right-0 w-80 bg-white rounded-l-xl shadow-xl z-50 p-6 flex flex-col" aria-label="Settings Panel" aria-hidden="true" tabindex="-1">
-   <header class="mb-6 flex justify-between items-center">
-    <h2 class="text-2xl font-bold text-gray-900">Settings</h2>
-    <button id="settings-close-btn" aria-label="Close settings panel" class="text-gray-600 hover:text-gray-900" type="button">
-     <i class="fas fa-times text-xl"></i>
-    </button>
-   </header>
-   <div class="flex flex-col gap-6">
-    <div>
-     <h3 class="text-lg font-semibold text-gray-800 mb-2">Theme</h3>
-     <button id="theme-toggle-btn" class="bg-gray-200 text-gray-800 rounded-full py-2 px-4 w-full text-center font-semibold hover:bg-gray-300 transition" type="button" aria-pressed="false">Switch to Dark Mode</button>
-    </div>
-   </div>
-  </section>
-
-  <!-- Logout Confirmation Modal -->
-  <div id="logout-backdrop" class="fixed inset-0 hidden z-40" aria-hidden="true"></div>
-  <section id="logout-modal" class="fixed top-1/2 left-1/2 w-80 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-lg p-6 z-50" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-hidden="true" tabindex="-1">
-   <h2 id="logout-title" class="text-xl font-semibold text-gray-900 mb-4">Would you like to logout?</h2>
-   <div class="flex justify-end gap-4">
-    <button id="logout-cancel-btn" class="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 transition font-semibold text-gray-800" type="button">Cancel</button>
-    <button id="logout-confirm-btn" class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-semibold transition" type="button">Logout</button>
-   </div>
-  </section>
-
   <script>
    // Menu data with categories
    const menuData = [
@@ -180,7 +167,88 @@
       alt: "White ceramic cup filled with hot Americano coffee on white background",
       category: "coffee"
     },
-    // other menu items omitted for brevity ...
+    {
+      id: "caramel-macchiato",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
+      category: "coffee"
+    },
+    {
+      id: "spanish-latte",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
+    },
+    {
+      id: "white-mocha",
+      name: "White Mocha",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/c5d0393f-84a8-42bc-3451-8d0548bcb28a.jpg",
+      alt: "Glass cup filled with white mocha coffee with whipped cream on top on white background",
+      category: "non-coffee"
+    },
+    {
+      id: "caramel-macchiato-2",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/dc4a018e-cae9-4b7e-2a2c-7512bab59c5b.jpg",
+      alt: "White ceramic cup filled with caramel macchiato coffee on white background",
+      category: "coffee"
+    },
+    {
+      id: "spanish-latte-2",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
+    },
+    {
+      id: "hot-americano-2",
+      name: "Hot Americano",
+      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
+      price: 90.0,
+      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
+      alt: "White ceramic cup filled with hot Americano coffee on white background",
+      category: "coffee"
+    },
+    {
+      id: "caramel-macchiato-3",
+      name: "Caramel Macchiato",
+      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
+      price: 125.0,
+      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
+      category: "coffee"
+    },
+    {
+      id: "spanish-latte-3",
+      name: "Spanish Latte",
+      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
+      price: 100.0,
+      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
+    },
+    // Add some non-coffee items for demonstration
+    {
+      id: "green-tea",
+      name: "Green Tea",
+      description: "Refreshing green tea with natural flavors",
+      price: 80.0,
+      img: "https://placehold.co/80x80/png?text=Green+Tea",
+      alt: "Cup of green tea on white background",
+      category: "non-coffee"
+    },
     {
       id: "hot-chocolate",
       name: "Hot Chocolate",
@@ -203,7 +271,149 @@
    let order = {};
    let currentCategory = "coffee";
 
-   // menu render and order functions omitted for brevity, unchanged...
+   // Render menu items filtered by category
+   function renderMenu() {
+     menuContainer.innerHTML = "";
+     const filteredItems = menuData.filter(item => item.category === currentCategory);
+     filteredItems.forEach(item => {
+       const isInOrder = order[item.id] !== undefined;
+       const quantity = isInOrder ? order[item.id].quantity : 0;
+
+       const article = document.createElement("article");
+       article.setAttribute("aria-label", `${item.name} coffee item`);
+       article.className = "bg-white rounded-lg shadow-md p-3 flex flex-col items-center";
+
+       const img = document.createElement("img");
+       img.src = item.img;
+       img.alt = item.alt;
+       img.className = "mb-2";
+       img.width = 80;
+       img.height = 80;
+
+       const h3 = document.createElement("h3");
+       h3.className = "font-semibold text-sm text-[#4B2E0E] mb-1 text-center";
+       h3.textContent = item.name;
+
+       const pDesc = document.createElement("p");
+       pDesc.className = "text-[9px] text-gray-400 text-center mb-1 leading-[1.1]";
+       pDesc.textContent = item.description;
+
+       const pPrice = document.createElement("p");
+       pPrice.className = "font-semibold text-xs text-[#4B2E0E] mb-2";
+       pPrice.textContent = `₱ ${item.price.toFixed(2)}`;
+
+       article.appendChild(img);
+       article.appendChild(h3);
+       article.appendChild(pDesc);
+       article.appendChild(pPrice);
+
+       if (isInOrder) {
+         // Show quantity controls
+         const controls = document.createElement("div");
+         controls.className = "flex items-center gap-2";
+
+         const btnMinus = document.createElement("button");
+         btnMinus.type = "button";
+         btnMinus.className = "bg-gray-300 rounded-full w-7 h-7 text-gray-600 disabled:opacity-50";
+         btnMinus.textContent = "-";
+         btnMinus.setAttribute("aria-label", `Decrease quantity of ${item.name}`);
+         btnMinus.disabled = quantity <= 1;
+         btnMinus.addEventListener("click", () => {
+           updateQuantity(item.id, quantity - 1);
+         });
+
+         const spanQty = document.createElement("span");
+         spanQty.className = "text-sm font-semibold text-[#4B2E0E]";
+         spanQty.textContent = quantity;
+
+         const btnPlus = document.createElement("button");
+         btnPlus.type = "button";
+         btnPlus.className = "bg-[#C4A07A] rounded-full w-7 h-7 text-white font-bold";
+         btnPlus.textContent = "+";
+         btnPlus.setAttribute("aria-label", `Increase quantity of ${item.name}`);
+         btnPlus.addEventListener("click", () => {
+           updateQuantity(item.id, quantity + 1);
+         });
+
+         controls.appendChild(btnMinus);
+         controls.appendChild(spanQty);
+         controls.appendChild(btnPlus);
+
+         article.appendChild(controls);
+       } else {
+         // Show Add Item button
+         const addBtn = document.createElement("button");
+         addBtn.type = "button";
+         addBtn.className = "bg-[#C4A07A] rounded-full w-full py-1 text-xs font-semibold text-white";
+         addBtn.textContent = "Add Item";
+         addBtn.addEventListener("click", () => {
+           addToOrder(item.id);
+         });
+         article.appendChild(addBtn);
+       }
+
+       menuContainer.appendChild(article);
+     });
+   }
+
+   // Add item to order with quantity 1
+   function addToOrder(id) {
+     if (!order[id]) {
+       const item = menuData.find(i => i.id === id);
+       order[id] = {...item, quantity: 1};
+       renderMenu();
+       renderOrder();
+     }
+   }
+
+   // Update quantity of an order item
+   function updateQuantity(id, newQty) {
+     if (newQty < 1) {
+       delete order[id];
+     } else {
+       order[id].quantity = newQty;
+     }
+     renderMenu();
+     renderOrder();
+   }
+
+   // Render order summary
+   function renderOrder() {
+     // Clear previous order items except CATEGORY label
+     orderList.innerHTML = '<p class="font-semibold mb-1">CATEGORY</p>';
+
+     const entries = Object.values(order);
+     if (entries.length === 0) {
+       orderTotalEl.textContent = "₱ 0.00";
+       confirmBtn.disabled = true;
+       cancelBtn.disabled = true;
+       return;
+     }
+
+     let total = 0;
+     entries.forEach(item => {
+       total += item.price * item.quantity;
+
+       const div = document.createElement("div");
+       div.className = "flex justify-between mb-1";
+
+       const spanName = document.createElement("span");
+       spanName.className = "font-semibold";
+       spanName.textContent = item.name;
+
+       const spanPriceQty = document.createElement("span");
+       spanPriceQty.innerHTML = `<span class="font-semibold">₱ ${item.price.toFixed(2)}</span><span class="ml-1">x${item.quantity}</span>`;
+
+       div.appendChild(spanName);
+       div.appendChild(spanPriceQty);
+
+       orderList.appendChild(div);
+     });
+
+     orderTotalEl.innerHTML = `<span>₱</span> ${total.toFixed(2)}`;
+     confirmBtn.disabled = false;
+     cancelBtn.disabled = false;
+   }
 
    // Cancel order
    cancelBtn.addEventListener("click", () => {
@@ -217,7 +427,10 @@
      btn.addEventListener("click", () => {
        const selectedCategory = btn.getAttribute("data-category");
        if (selectedCategory === currentCategory) return;
+
        currentCategory = selectedCategory;
+
+       // Update aria-pressed and styles
        categoryButtons.forEach(b => {
          if (b === btn) {
            b.setAttribute("aria-pressed", "true");
@@ -229,6 +442,7 @@
            b.classList.add("bg-white", "border", "border-gray-300", "text-gray-700");
          }
        });
+
        renderMenu();
      });
    });
@@ -236,75 +450,6 @@
    // Initial render
    renderMenu();
    renderOrder();
-
-   // Settings panel toggle (unchanged) ...
-   const settingsBtn = document.getElementById("settings-btn");
-   const settingsPanel = document.getElementById("settings-panel");
-   const settingsBackdrop = document.getElementById("settings-backdrop");
-   const settingsCloseBtn = document.getElementById("settings-close-btn");
-   const themeToggleBtn = document.getElementById("theme-toggle-btn");
-
-   function openSettings() {
-     settingsPanel.classList.add("open");
-     settingsPanel.setAttribute("aria-hidden", "false");
-     settingsBackdrop.classList.remove("hidden");
-   }
-   function closeSettings() {
-     settingsPanel.classList.remove("open");
-     settingsPanel.setAttribute("aria-hidden", "true");
-     settingsBackdrop.classList.add("hidden");
-   }
-   settingsBtn.addEventListener("click", openSettings);
-   settingsCloseBtn.addEventListener("click", closeSettings);
-   settingsBackdrop.addEventListener("click", closeSettings);
-   // Theme toggle logic (unchanged) ...
-   let darkMode = false;
-   function updateTheme() {
-     if (darkMode) {
-       document.documentElement.classList.add("dark");
-       document.body.classList.add("bg-gray-900", "text-gray-100");
-       themeToggleBtn.textContent = "Switch to Default Mode";
-       themeToggleBtn.setAttribute("aria-pressed", "true");
-     } else {
-       document.documentElement.classList.remove("dark");
-       document.body.classList.remove("bg-gray-900", "text-gray-100");
-       document.body.classList.add("bg-[rgba(255,255,255,0.7)]");
-       themeToggleBtn.textContent = "Switch to Dark Mode";
-       themeToggleBtn.setAttribute("aria-pressed", "false");
-     }
-   }
-   themeToggleBtn.addEventListener("click", () => {
-     darkMode = !darkMode;
-     updateTheme();
-   });
-
-   // Logout modal logic
-   const logoutBtn = document.getElementById("logout-btn");
-   const logoutModal = document.getElementById("logout-modal");
-   const logoutBackdrop = document.getElementById("logout-backdrop");
-   const logoutCancelBtn = document.getElementById("logout-cancel-btn");
-   const logoutConfirmBtn = document.getElementById("logout-confirm-btn");
-
-   function openLogoutModal() {
-     logoutModal.classList.add("open");
-     logoutModal.setAttribute("aria-hidden", "false");
-     logoutBackdrop.classList.remove("hidden");
-   }
-   function closeLogoutModal() {
-     logoutModal.classList.remove("open");
-     logoutModal.setAttribute("aria-hidden", "true");
-     logoutBackdrop.classList.add("hidden");
-   }
-
-   logoutBtn.addEventListener("click", openLogoutModal);
-   logoutCancelBtn.addEventListener("click", closeLogoutModal);
-   logoutBackdrop.addEventListener("click", closeLogoutModal);
-
-   logoutConfirmBtn.addEventListener("click", () => {
-     // For now, just close modal and simulate logout action
-     closeLogoutModal();
-     alert("You have been logged out."); // placeholder for real logout action
-   });
   </script>
  </body>
 </html>

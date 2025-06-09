@@ -7,18 +7,19 @@
    exit();
  }
 ?>
+
+
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>
-   Coffee Menu with Add Item Functionality
+   Coffee Menu with Category Tabs and Add Item Functionality
   </title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
-  <!-- SweetAlert2 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
    body {
       font-family: 'Inter', sans-serif;
@@ -33,13 +34,15 @@
     }
   </style>
  </head>
+
+
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button">
+   <<button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'">
     <i class="fas fa-home"></i>
    </button>
-   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button">
+   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'">
     <i class="fas fa-shopping-cart"></i>
    </button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button">
@@ -61,6 +64,8 @@
     <i class="fas fa-sign-out-alt"></i>
    </button>
   </aside>
+
+
   <!-- Main content -->
   <main class="flex-1 p-6 relative flex flex-col">
    <!-- Background image with overlay -->
@@ -68,7 +73,7 @@
    <!-- Header and search -->
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">
-     Welcome to Lorem, Arnain
+     Welcome to Love Amaiah
     </p>
     <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">
      Name's Homepage
@@ -76,30 +81,39 @@
     <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
      <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
      <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
-      <i class="fas fa-search"></i>
+      <i class="fas fa-search">
+      </i>
      </button>
     </form>
    </header>
+
+
+
    <!-- Category buttons -->
-   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl">
-    <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md" type="button">
-     <i class="fas fa-coffee"></i>
+   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav">
+    <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md category-btn" data-category="coffee" type="button">
+     <i class="fas fa-coffee">
+     </i>
      Coffee
     </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;"></i>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="non-coffee" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;">
+     </i>
      Non Coffee
     </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
-     <i class="fas fa-leaf" style="opacity: 0.3;"></i>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="matcha" type="button">
+     <i class="fas fa-leaf" style="opacity: 0.3;">
+     </i>
      Matcha
     </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
-     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;"></i>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="frappe" type="button">
+     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;">
+     </i>
      Frappe
     </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;"></i>
+    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="signatures" type="button">
+     <i class="fas fa-coffee" style="opacity: 0.3;">
+     </i>
      Signatures
     </button>
     <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">
@@ -113,6 +127,7 @@
     </div>
    </section>
   </main>
+  
   <!-- Order summary -->
   <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
    <div>
@@ -141,7 +156,7 @@
     </p>
    </div>
    <div class="mt-6 flex gap-4">
-    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="button" id="confirm-btn" disabled>
+    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="submit" id="confirm-btn" disabled>
      Confirm
     </button>
     <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>
@@ -150,6 +165,7 @@
    </div>
   </aside>
   <script>
+   // Menu data with categories
    const menuData = [
     {
       id: "hot-americano",
@@ -157,7 +173,8 @@
       description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
       price: 90.0,
       img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
-      alt: "White ceramic cup filled with hot Americano coffee on white background"
+      alt: "White ceramic cup filled with hot Americano coffee on white background",
+      category: "coffee"
     },
     {
       id: "caramel-macchiato",
@@ -165,7 +182,8 @@
       description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
       price: 125.0,
       img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
-      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background"
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
+      category: "coffee"
     },
     {
       id: "spanish-latte",
@@ -173,7 +191,8 @@
       description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
       price: 100.0,
       img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
     },
     {
       id: "white-mocha",
@@ -181,7 +200,8 @@
       description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
       price: 90.0,
       img: "https://storage.googleapis.com/a1aa/image/c5d0393f-84a8-42bc-3451-8d0548bcb28a.jpg",
-      alt: "Glass cup filled with white mocha coffee with whipped cream on top on white background"
+      alt: "Glass cup filled with white mocha coffee with whipped cream on top on white background",
+      category: "non-coffee"
     },
     {
       id: "caramel-macchiato-2",
@@ -189,7 +209,8 @@
       description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
       price: 125.0,
       img: "https://storage.googleapis.com/a1aa/image/dc4a018e-cae9-4b7e-2a2c-7512bab59c5b.jpg",
-      alt: "White ceramic cup filled with caramel macchiato coffee on white background"
+      alt: "White ceramic cup filled with caramel macchiato coffee on white background",
+      category: "coffee"
     },
     {
       id: "spanish-latte-2",
@@ -197,7 +218,8 @@
       description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
       price: 100.0,
       img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
     },
     {
       id: "hot-americano-2",
@@ -205,7 +227,8 @@
       description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
       price: 90.0,
       img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
-      alt: "White ceramic cup filled with hot Americano coffee on white background"
+      alt: "White ceramic cup filled with hot Americano coffee on white background",
+      category: "coffee"
     },
     {
       id: "caramel-macchiato-3",
@@ -213,7 +236,8 @@
       description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
       price: 125.0,
       img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
-      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background"
+      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
+      category: "coffee"
     },
     {
       id: "spanish-latte-3",
@@ -221,7 +245,27 @@
       description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
       price: 100.0,
       img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background"
+      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
+      category: "coffee"
+    },
+    // Add some non-coffee items for demonstration
+    {
+      id: "green-tea",
+      name: "Green Tea",
+      description: "Refreshing green tea with natural flavors",
+      price: 80.0,
+      img: "https://placehold.co/80x80/png?text=Green+Tea",
+      alt: "Cup of green tea on white background",
+      category: "non-coffee"
+    },
+    {
+      id: "hot-chocolate",
+      name: "Hot Chocolate",
+      description: "Rich and creamy hot chocolate",
+      price: 95.0,
+      img: "https://placehold.co/80x80/png?text=Hot+Chocolate",
+      alt: "Cup of hot chocolate with whipped cream on white background",
+      category: "non-coffee"
     }
    ];
 
@@ -230,14 +274,17 @@
    const orderTotalEl = document.getElementById("order-total");
    const confirmBtn = document.getElementById("confirm-btn");
    const cancelBtn = document.getElementById("cancel-btn");
+   const categoryButtons = document.querySelectorAll(".category-btn");
 
    // Order state: { id: { ...item, quantity } }
    let order = {};
+   let currentCategory = "coffee";
 
-   // Render menu items
+   // Render menu items filtered by category
    function renderMenu() {
      menuContainer.innerHTML = "";
-     menuData.forEach(item => {
+     const filteredItems = menuData.filter(item => item.category === currentCategory);
+     filteredItems.forEach(item => {
        const isInOrder = order[item.id] !== undefined;
        const quantity = isInOrder ? order[item.id].quantity : 0;
 
@@ -384,11 +431,33 @@
      renderOrder();
    });
 
-   // Initial render
-   renderMenu();
-   renderOrder();
+   // Category button click handler
+   categoryButtons.forEach(btn => {
+     btn.addEventListener("click", () => {
+       const selectedCategory = btn.getAttribute("data-category");
+       if (selectedCategory === currentCategory) return;
 
-   // SweetAlert2 logout
+       currentCategory = selectedCategory;
+
+       // Update aria-pressed and styles
+       categoryButtons.forEach(b => {
+         if (b === btn) {
+           b.setAttribute("aria-pressed", "true");
+           b.classList.add("bg-[#4B2E0E]", "text-white", "shadow-md");
+           b.classList.remove("bg-white", "border", "border-gray-300", "text-gray-700");
+         } else {
+           b.setAttribute("aria-pressed", "false");
+           b.classList.remove("bg-[#4B2E0E]", "text-white", "shadow-md");
+           b.classList.add("bg-white", "border", "border-gray-300", "text-gray-700");
+         }
+       });
+
+       renderMenu();
+     });
+   });
+
+
+     // SweetAlert2 logout
    document.getElementById("logout-btn").addEventListener("click", () => {
      Swal.fire({
        title: 'Are you sure you want to log out?',
@@ -405,6 +474,9 @@
      });
    });
 
+   // Initial render
+   renderMenu();
+   renderOrder();
   </script>
  </body>
 </html>

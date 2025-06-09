@@ -1,11 +1,17 @@
 <?php
 session_start();
-require_once('./classes/database.php');
+require_once('../../classes/database.php');
+require_once('../../classes/user.php');
+require_once('../../classes/employee.php');
+
 $sweetAlertConfig = "";
 $con = new database();
 
 if (isset($_SESSION['OwnerID'])) {
-    header('Location: mainpage.php');
+    header('Location: ../owner/dashboard.php');
+    exit();
+} elseif (isset($_SESSION['EmployeeID'])) {
+    header('Location: ../employee/dashboard.php');
     exit();
 }
 
@@ -15,20 +21,16 @@ if (isset($_POST['login'])) {
     $user = $con->loginUser($username, $password);
 
     if ($user) {
-        $_SESSION['OwnerID'] = $user['OwnerID'];
-        $_SESSION['OwnerFN'] = $user['OwnerFN'];
-
-        $sweetAlertConfig = "
-        <script>
-        Swal.fire({
-          icon: 'success',
-          title: 'Login Successful',
-          text: 'Welcome, " . addslashes(htmlspecialchars($user['OwnerFN'])) . "!',
-          confirmButtonText: 'Continue'
-        }).then(() => {
-          window.location.href = 'mainpage.php';
-        });
-        </script>";
+        if ($user['role'] === 'owner' || $user['role'] === 'admin') {
+            $_SESSION['OwnerID'] = $user['OwnerID'];
+            $_SESSION['OwnerFN'] = $user['OwnerFN'];
+            header('Location: ../owner/dashboard.php');
+        } elseif ($user['role'] === 'employee') {
+            $_SESSION['EmployeeID'] = $user['EmployeeID'];
+            $_SESSION['EmployeeName'] = $user['EmployeeName'];
+            header('Location: ../employee/dashboard.php');
+        }
+        exit();
     } else {
         $sweetAlertConfig = "
         <script>
@@ -48,13 +50,13 @@ if (isset($_POST['login'])) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login - Amaiah</title>
-  <link rel="stylesheet" href="./bootstrap-5.3.3-dist/css/bootstrap.css">
-  <link rel="stylesheet" href="./package/dist/sweetalert2.css">
+  <link rel="stylesheet" href="../../bootstrap-5.3.3-dist/css/bootstrap.css">
+  <link rel="stylesheet" href="../../package/dist/sweetalert2.css">
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-image: url('images/LAbg.png');
+      background-image: url('../../images/LAbg.png');
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
@@ -144,7 +146,7 @@ if (isset($_POST['login'])) {
 <body>
 <div class="login-container">
   <div class="logo">
-    <img src="images/logo.png" alt="Amaiah logo" />
+    <img src="../../images/logo.png" alt="Amaiah logo" />
   </div>
   <h2>Login</h2>
   <form method="POST" action="">
@@ -156,12 +158,12 @@ if (isset($_POST['login'])) {
     </div>
     <button type="submit" name="login" class="btn btn-primary">Login</button>
     <div class="text-center mt-3">
-      Don't have an account? <a href="registration.php">Register</a>
+      Don't have an account? <a href="../registration.php">Register</a>
     </div>
   </form>
 </div>
 
-<script src="./bootstrap-5.3.3-dist/js/bootstrap.js"></script>
+<script src="../../bootstrap-5.3.3-dist/js/bootstrap.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <?php echo $sweetAlertConfig; ?>
 </body>
