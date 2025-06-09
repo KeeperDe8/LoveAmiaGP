@@ -45,7 +45,7 @@
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'">
     <i class="fas fa-shopping-cart"></i>
    </button>
-   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button">
+   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'">
     <i class="fas fa-box"></i>
    </button>
    <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button">
@@ -131,12 +131,18 @@
   <!-- Order summary -->
   <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
    <div>
-    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">
-     DINE IN/TAKE OUT
-    </button>
-    <h2 class="font-semibold text-[#4B2E0E] mb-2">
-     My Order:
-    </h2>
+    <?php
+$customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
+$orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['order_type'])) : 'DINE IN/TAKE OUT';
+?>
+
+<button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">
+  <?php echo $orderType; ?>
+</button>
+
+<h2 class="font-semibold text-[#4B2E0E] mb-2">
+  <?php echo "{$customer}'s Order:"; ?>
+</h2>
     <div class="text-xs text-gray-700" id="order-list">
      <p class="font-semibold mb-1">
       CATEGORY

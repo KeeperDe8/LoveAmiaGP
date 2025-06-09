@@ -90,6 +90,44 @@ function getEmployee(){
 }
 
 
+function addProduct($productName, $category, $price, $createdAt, $effectiveFrom, $effectiveTo, $ownerID) {
+    $con = $this->opencon();
+
+    try {
+        $con->beginTransaction();
+
+        // Insert into product (Created_AT is auto, OwnerID does not exist)
+        $stmt = $con->prepare("INSERT INTO product (ProductName, ProductCategory) 
+                               VALUES (?, ?)");
+        $stmt->execute([$productName, $category]);
+
+        $productID = $con->lastInsertId();
+
+        // Insert into productprices
+        $stmt2 = $con->prepare("INSERT INTO productprices (ProductID, UnitPrice, Effective_From, Effective_To) 
+                                VALUES (?, ?, ?, ?)");
+        $stmt2->execute([$productID, $price, $effectiveFrom, $effectiveTo]);
+
+        $con->commit();
+        return $productID;
+    } catch (PDOException $e) {
+        $con->rollBack();
+        error_log("AddProduct Error: " . $e->getMessage());
+        return false;
+    }
+}
+
+
+
+function getJoinedProductData() {
+    $con = $this->opencon();
+    $stmt = $con->prepare("SELECT product.ProductID, product.ProductName, product.ProductCategory, product.Created_AT, 
+                                  productprices.UnitPrice, productprices.Effective_From, productprices.Effective_To 
+                           FROM product 
+                           JOIN productprices ON product.ProductID = productprices.ProductID");
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 
 

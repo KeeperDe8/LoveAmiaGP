@@ -40,7 +40,7 @@ $ownerName = $_SESSION['OwnerFN'];
     <img src="images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
     <button title="Home" onclick="window.location='mainpage.php'"><i class="fas fa-home text-xl"></i></button>
     <button title="Orders" onclick="window.location='page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
-    <button title="Inventory" onclick="window.location='inventory.php'"><i class="fas fa-box text-xl"></i></button>
+    <button title="Inventory" onclick="window.location='product.php'"><i class="fas fa-box text-xl"></i></button>
     <button title="Reports" onclick="window.location='reports.php'"><i class="fas fa-chart-bar text-xl"></i></button>
     <button title="Users" onclick="window.location='user.php'"><i class="fas fa-users text-xl"></i></button>
     <button title="Menu" onclick="window.location='menu.php'"><i class="fas fa-bars text-xl"></i></button>
@@ -49,13 +49,43 @@ $ownerName = $_SESSION['OwnerFN'];
   </aside>
 
   <!-- Main content -->
-  <main class="flex-1 p-10 relative flex flex-col justify-center items-center text-center">
-    <div class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg p-10 max-w-3xl w-full">
-      <h1 class="text-3xl font-extrabold mb-2">Welcome, <?php echo htmlspecialchars($ownerName); ?> 👋</h1>
-      <p class="text-gray-700">This is your café dashboard. Use the sidebar to manage employees, view reports, check orders, and more.</p>
-      <div class="mt-6 text-sm text-gray-400">Group 49 © 2025</div>
-    </div>
-  </main>
+  <!-- Main content -->
+<main class="flex-1 p-10 flex items-center justify-center text-center">
+  <div class="bg-white bg-opacity-80 backdrop-blur-md rounded-2xl shadow-xl px-10 py-12 max-w-4xl w-100">
+    
+    <!-- greeting -->
+    <h1 class="text-3xl font-extrabold mb-4">
+      Welcome, <?php echo htmlspecialchars($ownerName); ?> 👋
+    </h1>
+    <p class="text-gray-700 mb-10">
+      How would you like to place the order?
+    </p>
+<form action="page.php" method="get" class="flex flex-col items-center gap-6">
+  <label class="text-[#4B2E0E] font-semibold">
+    Enter your name:
+    <input type="text" name="customer_name" required class="mt-2 p-2 rounded border border-gray-300" />
+  </label>
+
+  <div class="flex gap-10 mt-6">
+    <button type="submit" name="order_type" value="Dine-In" class="bg-white p-6 rounded-xl shadow text-[#4B2E0E] hover:bg-[#f5f5f5]">
+      <i class="fas fa-utensils fa-2x"></i>
+      <div class="mt-2 font-semibold">Dine-In</div>
+    </button>
+
+    <button type="submit" name="order_type" value="Take-Out" class="bg-white p-6 rounded-xl shadow text-[#4B2E0E] hover:bg-[#f5f5f5]">
+      <i class="fas fa-shopping-bag fa-2x"></i>
+      <div class="mt-2 font-semibold">Take-Out</div>
+    </button>
+  </div>
+</form>
+
+    <!-- footer -->
+     
+    <div class="text-sm text-gray-400">Group 4 © 2025</div>
+  </div>
+</main>
+
+
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
