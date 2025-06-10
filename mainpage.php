@@ -81,7 +81,7 @@ $ownerName = $_SESSION['OwnerFN'];
 
     <!-- footer -->
      
-    <div class="text-sm text-gray-400">Group 4 © 2025</div>
+    <div class="text-sm text-gray-400"></div>
   </div>
 </main>
 

@@ -6,7 +6,7 @@ class database{
 
         return new PDO(
             'mysql:host=localhost;
-             dbname=amaiah',
+             dbname=amaiaha',
             username: 'root',
             password: '');
         }
@@ -62,14 +62,15 @@ function loginUser($username, $password){
 }
 
 
-function addEmployee($firstF, $firstN, $role, $date, $timeS, $timeE, $number, $email, $owerID){
+function addEmployee($firstF, $firstN, $Euser, $password, $role, $emailN,  $number, $owerID): bool|string{
     $con = $this->opencon();
 
     try {
         $con->beginTransaction();
-        $stmt = $con->prepare("INSERT INTO employee (EmployeeFN, EmployeeLN, Role, HireDate, ShiftStart, ShiftEnd, E_PhoneNumber, E_Email, OwnerID) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$firstF, $firstN, $role, $date, $timeS, $timeE, $number, $email, $owerID]);
+        $stmt = $con->prepare("INSERT INTO employee (EmployeeFN, EmployeeLN, E_Username, E_Password, Role, E_PhoneNumber, E_Email, OwnerID) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        $stmt->execute([$firstF, $firstN, $Euser, $password, $role, $emailN, $number, $owerID]);
         $userID = $con->lastInsertId();
         $con->commit();
 
@@ -80,6 +81,7 @@ function addEmployee($firstF, $firstN, $role, $date, $timeS, $timeE, $number, $e
         return false;
     }
 }
+
 
 
 function getEmployee(){
@@ -127,6 +129,23 @@ function getJoinedProductData() {
                            JOIN productprices ON product.ProductID = productprices.ProductID");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+function isEmployeEmailExists($emailN){
+    $con = $this->opencon();
+    $stmt = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Email = ?");
+    $stmt->execute([$emailN]);
+    $count = $stmt->fetchColumn();
+    return $count > 0;
+
+}
+
+function isEmployeeUserExists($Euser){
+    $con = $this->opencon();
+    $stmt = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Username = ?");
+    $stmt->execute([$Euser]);
+    return $stmt->fetchColumn() > 0;
 }
 
 
