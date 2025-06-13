@@ -4,6 +4,7 @@ session_start();
 require_once('classes/database.php');
 $con = new database();
 
+$sweetAlertConfig = "";
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -14,22 +15,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user) {
         $_SESSION['EmployeeID'] = $user['EmployeeID'];
         $_SESSION['role'] = 'employee';
-        header('Location: employeepage.php');
-        exit;
-    }
 
-    // Try owner login
-    $admin = $con->loginOwner($username, $password);
-    if ($admin) {
-        $_SESSION['OwnerID'] = $admin['OwnerID'];
-        $_SESSION['OwnerFN'] = $admin['OwnerFN'];
-        $_SESSION['role'] = 'owner';
-        header('Location: mainpage.php');
-        exit;
-    }
+        $sweetAlertConfig = "
+        <script>
+        Swal.fire({
+          icon: 'success',
+          title: 'Login Successful',
+          text: 'Welcome, " . addslashes(htmlspecialchars($user['E_Username'])) . "!',
+          confirmButtonText: 'Continue'
+        }).then(() => {
+          window.location.href = 'employeepage.php';
+        });
+        </script>";
+    } else {
+        // Try owner login
+        $admin = $con->loginOwner($username, $password);
+        if ($admin) {
+            $_SESSION['OwnerID'] = $admin['OwnerID'];
+            $_SESSION['OwnerFN'] = $admin['OwnerFN'];
+            $_SESSION['role'] = 'owner';
 
-    // Invalid login
-    $error = "Invalid username or password.";
+            $sweetAlertConfig = "
+            <script>
+            Swal.fire({
+              icon: 'success',
+              title: 'Login Successful',
+              text: 'Welcome, " . addslashes(htmlspecialchars($admin['OwnerFN'])) . "!',
+              confirmButtonText: 'Continue'
+            }).then(() => {
+              window.location.href = 'mainpage.php';
+            });
+            </script>";
+        } else {
+            $error = "Invalid username or password.";
+        }
+    }
 }
 ?>
 
@@ -42,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="./package/dist/sweetalert2.css">
   <style>
     body { font-family: 'Inter', sans-serif; }
   </style>
@@ -70,5 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </button>
     </form>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <?php echo $sweetAlertConfig; ?>
 </body>
 </html>

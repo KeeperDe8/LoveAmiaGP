@@ -9,7 +9,45 @@ require_once('classes/database.php');
 $con = new database();
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
+
+// --- ORDER SAVE LOGIC ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
+    $orderData = json_decode($_POST['orderData'], true);
+    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
+    $employeeID = $_SESSION['EmployeeID'];
+    $totalAmount = 0;
+
+    foreach ($orderData as $item) {
+        $totalAmount += $item['price'] * $item['quantity'];
+    }
+
+    $db = $con->opencon();
+    $stmt = $db->prepare("INSERT INTO orders (OrderedByType, OrderedByID, TotalAmount) VALUES ('employee', ?, ?)");
+    $stmt->execute([$employeeID, $totalAmount]);
+    $orderID = $db->lastInsertId();
+
+    foreach ($orderData as $item) {
+        $productID = intval(str_replace('product-', '', $item['id']));
+        $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
+        $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $orderID,
+            $productID,
+            $priceID,
+            $item['quantity'],
+            $item['price'] * $item['quantity']
+        ]);
+    }
+
+    // Store payment method for demo
+    $_SESSION['last_payment_method'] = $paymentMethod;
+
+    // Redirect to main page after order
+    header("Location: employesmain.php");
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,13 +67,16 @@ $categories = $con->getAllCategories();
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-    <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='employeepage.php'">
+    <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='employesmain.php'">
       <i class="fas fa-home"></i>
     </button>
     <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='employeepage.php'">
       <i class="fas fa-shopping-cart"></i>
     </button>
-    <button aria-label="Logout" id="logout-btn" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
+    <button aria-label="Product" class="text-[#4B2E0E] text-xl" title="Product" type="button" onclick="window.location='productemployee.php'">
+      <i class="fas fa-box"></i>
+    </button>
+    <button id="logout-btn" aria-label="Logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
       <i class="fas fa-sign-out-alt"></i>
     </button>
   </aside>
@@ -305,7 +346,56 @@ echo json_encode(array_map(function($p) {
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "logoutOE.php";
+          window.location.href = "../logoutOE.php";
+        }
+      });
+    });
+
+    // --- Confirm Button: Payment Popup & Save Order ---
+    confirmBtn.addEventListener("click", () => {
+      Swal.fire({
+        title: 'Select Payment Method',
+        input: 'radio',
+        inputOptions: {
+          cash: 'Cash',
+          card: 'Card',
+          online: 'Online Bank'
+        },
+        inputValidator: (value) => {
+          if (!value) {
+            return 'You need to choose a payment method!';
+          }
+        },
+        confirmButtonText: 'Proceed',
+        showCancelButton: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const paymentMethod = result.value;
+          const orderArray = Object.values(order).map(item => ({
+            id: item.id,
+            price: item.price,
+            quantity: item.quantity,
+            price_id: item.price_id
+          }));
+
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.style.display = 'none';
+
+          const inputOrder = document.createElement('input');
+          inputOrder.type = 'hidden';
+          inputOrder.name = 'orderData';
+          inputOrder.value = JSON.stringify(orderArray);
+
+          const inputPayment = document.createElement('input');
+          inputPayment.type = 'hidden';
+          inputPayment.name = 'paymentMethod';
+          inputPayment.value = paymentMethod;
+
+          form.appendChild(inputOrder);
+          form.appendChild(inputPayment);
+          document.body.appendChild(form);
+          form.submit();
         }
       });
     });
