@@ -3,11 +3,11 @@
 session_start();
 
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: login.php');
+  header('Location: loginOwnerEM.php');
   exit();
 }
 
-require_once('../classes/database.php');
+require_once('classes/database.php');
 $con = new database();
 $sweetAlertConfig = "";
 

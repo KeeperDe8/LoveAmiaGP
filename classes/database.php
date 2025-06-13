@@ -5,7 +5,8 @@ class database {
 
     function opencon() {
         return new PDO(
-            'mysql:host=localhost;dbname=amaihatest',
+            'mysql:host=localhost;
+            dbname=amaihatest',
             username: 'root',
             password: ''
         );

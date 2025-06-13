@@ -1,7 +1,7 @@
 
 <?php
 session_start();
-require_once('./classes/database.php');
+require_once('classes/database.php');
 $sweetAlertConfig = "";
 $con = new database();
 

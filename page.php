@@ -5,7 +5,7 @@ if (!isset($_SESSION['OwnerID'])) {
   header('Location: loginOwnerEM.php');
   exit();
 }
-require_once('../classes/database.php');
+require_once('classes/database.php');
 $con = new database();
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
