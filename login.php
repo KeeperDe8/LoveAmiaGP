@@ -1,32 +1,33 @@
+
 <?php
 session_start();
 require_once('./classes/database.php');
 $sweetAlertConfig = "";
 $con = new database();
 
-if (isset($_SESSION['OwnerID'])) {
-    header('Location: mainpage.php');
+if (isset($_SESSION['CustomerID'])) {
+    header('Location: customerpage.php');
     exit();
 }
 
 if (isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
-    $user = $con->loginUser($username, $password);
+    $user = $con->loginCustomer($username, $password);
 
     if ($user) {
-        $_SESSION['OwnerID'] = $user['OwnerID'];
-        $_SESSION['OwnerFN'] = $user['OwnerFN'];
+        $_SESSION['CustomerID'] = $user['CustomerID'];
+        $_SESSION['CustomerFN'] = $user['CustomerFN'];
 
         $sweetAlertConfig = "
         <script>
         Swal.fire({
           icon: 'success',
           title: 'Login Successful',
-          text: 'Welcome, " . addslashes(htmlspecialchars($user['OwnerFN'])) . "!',
+          text: 'Welcome, " . addslashes(htmlspecialchars($user['CustomerFN'])) . "!',
           confirmButtonText: 'Continue'
         }).then(() => {
-          window.location.href = 'mainpage.php';
+          window.location.href = 'customerpage.php';
         });
         </script>";
     } else {
@@ -47,7 +48,7 @@ if (isset($_POST['login'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login - Amaiah</title>
+  <title>Customer Login - Amaiah</title>
   <link rel="stylesheet" href="./bootstrap-5.3.3-dist/css/bootstrap.css">
   <link rel="stylesheet" href="./package/dist/sweetalert2.css">
   <style>
@@ -146,7 +147,7 @@ if (isset($_POST['login'])) {
   <div class="logo">
     <img src="images/logo.png" alt="Amaiah logo" />
   </div>
-  <h2>Login</h2>
+  <h2>Customer Login</h2>
   <form method="POST" action="">
     <div class="mb-3">
       <input type="text" name="username" class="form-control" placeholder="Enter your username" required>

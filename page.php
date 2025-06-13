@@ -1,13 +1,52 @@
-
 <?php 
- session_start();
- $sweetAlertConfig = ""; 
- if (!isset($_SESSION['OwnerID'])) {
-   header('Location: login.php');
-   exit();
- }
-?>
+session_start();
+$sweetAlertConfig = ""; 
+if (!isset($_SESSION['OwnerID'])) {
+  header('Location: loginOwnerEM.php');
+  exit();
+}
+require_once('../classes/database.php');
+$con = new database();
+$products = $con->getAllProductsWithPrice();
+$categories = $con->getAllCategories();
 
+// --- ORDER SAVE LOGIC ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
+    $orderData = json_decode($_POST['orderData'], true);
+    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
+    $ownerID = $_SESSION['OwnerID'];
+    $totalAmount = 0;
+
+    foreach ($orderData as $item) {
+        $totalAmount += $item['price'] * $item['quantity'];
+    }
+
+    $db = $con->opencon();
+    $stmt = $db->prepare("INSERT INTO orders (OrderedByType, OrderedByID, TotalAmount) VALUES ('owner', ?, ?)");
+    $stmt->execute([$ownerID, $totalAmount]);
+    $orderID = $db->lastInsertId();
+
+    foreach ($orderData as $item) {
+        $productID = intval(str_replace('product-', '', $item['id']));
+        $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
+        $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $orderID,
+            $productID,
+            $priceID,
+            $item['quantity'],
+            $item['price'] * $item['quantity']
+        ]);
+    }
+
+    // Store payment method for demo
+    $_SESSION['last_payment_method'] = $paymentMethod;
+
+    // Redirect to main page after order
+    header("Location: mainpage.php");
+    exit;
+}
+?>
 
 <html lang="en">
  <head>
@@ -16,15 +55,14 @@
   <title>
    Coffee Menu with Category Tabs and Add Item Functionality
   </title>
-  <script src="https://cdn.tailwindcss.com">
-  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
    body {
       font-family: 'Inter', sans-serif;
     }
-    /* Scrollbar for menu container */
     #menu-scroll::-webkit-scrollbar {
       width: 6px;
     }
@@ -35,20 +73,22 @@
   </style>
  </head>
 
-
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <<button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'">
+   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'">
     <i class="fas fa-home"></i>
    </button>
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'">
     <i class="fas fa-shopping-cart"></i>
    </button>
+   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='orderlist.php'">
+    <i class="fas fa-list"></i>
+   </button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'">
     <i class="fas fa-box"></i>
    </button>
-   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button">
+   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button" onclick="window.location='chart.php'">
     <i class="fas fa-chart-bar"></i>
    </button>
    <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'">
@@ -65,12 +105,9 @@
    </button>
   </aside>
 
-
   <!-- Main content -->
   <main class="flex-1 p-6 relative flex flex-col">
-   <!-- Background image with overlay -->
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
-   <!-- Header and search -->
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">
      Welcome to Love Amaiah
@@ -81,44 +118,14 @@
     <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
      <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
      <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
-      <i class="fas fa-search">
-      </i>
+      <i class="fas fa-search"></i>
      </button>
     </form>
    </header>
 
-
-
    <!-- Category buttons -->
    <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav">
-    <button aria-pressed="true" class="flex items-center gap-2 bg-[#4B2E0E] text-white rounded-full py-2 px-5 text-sm font-semibold shadow-md category-btn" data-category="coffee" type="button">
-     <i class="fas fa-coffee">
-     </i>
-     Coffee
-    </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="non-coffee" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;">
-     </i>
-     Non Coffee
-    </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="matcha" type="button">
-     <i class="fas fa-leaf" style="opacity: 0.3;">
-     </i>
-     Matcha
-    </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="frappe" type="button">
-     <i class="fas fa-glass-martini-alt" style="opacity: 0.3;">
-     </i>
-     Frappe
-    </button>
-    <button aria-pressed="false" class="flex items-center gap-2 bg-white border border-gray-300 rounded-full py-2 px-5 text-sm text-gray-700 category-btn" data-category="signatures" type="button">
-     <i class="fas fa-coffee" style="opacity: 0.3;">
-     </i>
-     Signatures
-    </button>
-    <a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">
-     See more...
-    </a>
+    <!-- Category buttons will be generated by JS -->
    </nav>
    <!-- Coffee Menu Grid -->
    <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
@@ -171,109 +178,32 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
    </div>
   </aside>
   <script>
-   // Menu data with categories
-   const menuData = [
-    {
-      id: "hot-americano",
-      name: "Hot Americano",
-      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
-      price: 90.0,
-      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
-      alt: "White ceramic cup filled with hot Americano coffee on white background",
-      category: "coffee"
-    },
-    {
-      id: "caramel-macchiato",
-      name: "Caramel Macchiato",
-      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
-      price: 125.0,
-      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
-      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
-      category: "coffee"
-    },
-    {
-      id: "spanish-latte",
-      name: "Spanish Latte",
-      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
-      price: 100.0,
-      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
-      category: "coffee"
-    },
-    {
-      id: "white-mocha",
-      name: "White Mocha",
-      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
-      price: 90.0,
-      img: "https://storage.googleapis.com/a1aa/image/c5d0393f-84a8-42bc-3451-8d0548bcb28a.jpg",
-      alt: "Glass cup filled with white mocha coffee with whipped cream on top on white background",
-      category: "non-coffee"
-    },
-    {
-      id: "caramel-macchiato-2",
-      name: "Caramel Macchiato",
-      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
-      price: 125.0,
-      img: "https://storage.googleapis.com/a1aa/image/dc4a018e-cae9-4b7e-2a2c-7512bab59c5b.jpg",
-      alt: "White ceramic cup filled with caramel macchiato coffee on white background",
-      category: "coffee"
-    },
-    {
-      id: "spanish-latte-2",
-      name: "Spanish Latte",
-      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
-      price: 100.0,
-      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
-      category: "coffee"
-    },
-    {
-      id: "hot-americano-2",
-      name: "Hot Americano",
-      description: "Description about Hot Americano Description about Hot Americano Description about Hot Americano",
-      price: 90.0,
-      img: "https://storage.googleapis.com/a1aa/image/fb5c6a68-d24e-4c05-4eb2-66ce9ff64f90.jpg",
-      alt: "White ceramic cup filled with hot Americano coffee on white background",
-      category: "coffee"
-    },
-    {
-      id: "caramel-macchiato-3",
-      name: "Caramel Macchiato",
-      description: "Description about Caramel Macchiato Description about Caramel Macchiato Description about Caramel Macchiato",
-      price: 125.0,
-      img: "https://storage.googleapis.com/a1aa/image/27e306f9-f3d7-41d1-181f-3a9a810f8825.jpg",
-      alt: "Glass cup filled with caramel macchiato coffee with foam on top on white background",
-      category: "coffee"
-    },
-    {
-      id: "spanish-latte-3",
-      name: "Spanish Latte",
-      description: "Description about Spanish Latte Description about Spanish Latte Description about Spanish Latte",
-      price: 100.0,
-      img: "https://storage.googleapis.com/a1aa/image/2200c2e1-8965-4175-267f-79072983b01f.jpg",
-      alt: "Glass cup filled with Spanish latte coffee with foam on top on white background",
-      category: "coffee"
-    },
-    // Add some non-coffee items for demonstration
-    {
-      id: "green-tea",
-      name: "Green Tea",
-      description: "Refreshing green tea with natural flavors",
-      price: 80.0,
-      img: "https://placehold.co/80x80/png?text=Green+Tea",
-      alt: "Cup of green tea on white background",
-      category: "non-coffee"
-    },
-    {
-      id: "hot-chocolate",
-      name: "Hot Chocolate",
-      description: "Rich and creamy hot chocolate",
-      price: 95.0,
-      img: "https://placehold.co/80x80/png?text=Hot+Chocolate",
-      alt: "Cup of hot chocolate with whipped cream on white background",
-      category: "non-coffee"
-    }
-   ];
+   // Dynamic menuData from PHP
+   const menuData = <?php
+echo json_encode(array_map(function($p) {
+    return [
+        'id' => 'product-' . $p['ProductID'],
+        'name' => $p['ProductName'],
+        'description' => $p['ProductName'] . ' description here.',
+        'price' => floatval($p['UnitPrice']),
+        'img' => 'https://placehold.co/80x80/png?text=' . urlencode($p['ProductName']),
+        'alt' => $p['ProductName'],
+        'category' => strtolower($p['ProductCategory']),
+        'price_id' => $p['PriceID']
+    ];
+}, $products));
+?>;
+
+   // Dynamic categories from PHP
+   const categories = <?php echo json_encode($categories); ?>;
+   const categoryNav = document.getElementById('category-nav');
+   categoryNav.innerHTML = categories.map((cat, idx) => `
+     <button aria-pressed="${idx === 0 ? 'true' : 'false'}"
+       class="flex items-center gap-2 ${idx === 0 ? 'bg-[#4B2E0E] text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700'} rounded-full py-2 px-5 text-sm font-semibold category-btn"
+       data-category="${cat.toLowerCase()}" type="button">
+       <i class="fas fa-coffee"></i> ${cat}
+     </button>
+   `).join('') + `<a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">See more...</a>`;
 
    const menuContainer = document.getElementById("menu-items");
    const orderList = document.getElementById("order-list");
@@ -282,11 +212,9 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
    const cancelBtn = document.getElementById("cancel-btn");
    const categoryButtons = document.querySelectorAll(".category-btn");
 
-   // Order state: { id: { ...item, quantity } }
    let order = {};
-   let currentCategory = "coffee";
+   let currentCategory = categories.length > 0 ? categories[0].toLowerCase() : "";
 
-   // Render menu items filtered by category
    function renderMenu() {
      menuContainer.innerHTML = "";
      const filteredItems = menuData.filter(item => item.category === currentCategory);
@@ -323,7 +251,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
        article.appendChild(pPrice);
 
        if (isInOrder) {
-         // Show quantity controls
          const controls = document.createElement("div");
          controls.className = "flex items-center gap-2";
 
@@ -356,7 +283,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
 
          article.appendChild(controls);
        } else {
-         // Show Add Item button
          const addBtn = document.createElement("button");
          addBtn.type = "button";
          addBtn.className = "bg-[#C4A07A] rounded-full w-full py-1 text-xs font-semibold text-white";
@@ -371,7 +297,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
      });
    }
 
-   // Add item to order with quantity 1
    function addToOrder(id) {
      if (!order[id]) {
        const item = menuData.find(i => i.id === id);
@@ -381,7 +306,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
      }
    }
 
-   // Update quantity of an order item
    function updateQuantity(id, newQty) {
      if (newQty < 1) {
        delete order[id];
@@ -392,9 +316,7 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
      renderOrder();
    }
 
-   // Render order summary
    function renderOrder() {
-     // Clear previous order items except CATEGORY label
      orderList.innerHTML = '<p class="font-semibold mb-1">CATEGORY</p>';
 
      const entries = Object.values(order);
@@ -430,7 +352,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
      cancelBtn.disabled = false;
    }
 
-   // Cancel order
    cancelBtn.addEventListener("click", () => {
      order = {};
      renderMenu();
@@ -438,15 +359,14 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
    });
 
    // Category button click handler
-   categoryButtons.forEach(btn => {
+   document.querySelectorAll(".category-btn").forEach(btn => {
      btn.addEventListener("click", () => {
        const selectedCategory = btn.getAttribute("data-category");
        if (selectedCategory === currentCategory) return;
 
        currentCategory = selectedCategory;
 
-       // Update aria-pressed and styles
-       categoryButtons.forEach(b => {
+       document.querySelectorAll(".category-btn").forEach(b => {
          if (b === btn) {
            b.setAttribute("aria-pressed", "true");
            b.classList.add("bg-[#4B2E0E]", "text-white", "shadow-md");
@@ -462,8 +382,6 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
      });
    });
 
-
-     // SweetAlert2 logout
    document.getElementById("logout-btn").addEventListener("click", () => {
      Swal.fire({
        title: 'Are you sure you want to log out?',
@@ -475,12 +393,60 @@ $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['ord
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "logout.php";
+         window.location.href = "logoutOE.php";
        }
      });
    });
 
-   // Initial render
+   // --- Confirm Button: Payment Popup & Save Order ---
+   confirmBtn.addEventListener("click", () => {
+     Swal.fire({
+       title: 'Select Payment Method',
+       input: 'radio',
+       inputOptions: {
+         cash: 'Cash',
+         card: 'Card',
+         online: 'Online Bank'
+       },
+       inputValidator: (value) => {
+         if (!value) {
+           return 'You need to choose a payment method!';
+         }
+       },
+       confirmButtonText: 'Proceed',
+       showCancelButton: true
+     }).then((result) => {
+       if (result.isConfirmed) {
+         const paymentMethod = result.value;
+         const orderArray = Object.values(order).map(item => ({
+           id: item.id,
+           price: item.price,
+           quantity: item.quantity,
+           price_id: item.price_id
+         }));
+
+         const form = document.createElement('form');
+         form.method = 'POST';
+         form.style.display = 'none';
+
+         const inputOrder = document.createElement('input');
+         inputOrder.type = 'hidden';
+         inputOrder.name = 'orderData';
+         inputOrder.value = JSON.stringify(orderArray);
+
+         const inputPayment = document.createElement('input');
+         inputPayment.type = 'hidden';
+         inputPayment.name = 'paymentMethod';
+         inputPayment.value = paymentMethod;
+
+         form.appendChild(inputOrder);
+         form.appendChild(inputPayment);
+         document.body.appendChild(form);
+         form.submit();
+       }
+     });
+   });
+
    renderMenu();
    renderOrder();
   </script>

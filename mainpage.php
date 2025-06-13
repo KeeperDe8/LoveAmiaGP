@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: login.php');
+  header('Location: loginOwnerEM.php');
   exit();
 }
 $ownerName = $_SESSION['OwnerFN'];
@@ -35,18 +35,19 @@ $ownerName = $_SESSION['OwnerFN'];
 </head>
 <body class="min-h-screen flex text-[#4B2E0E]">
 
-  <!-- Sidebar -->
-  <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-    <img src="images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
-    <button title="Home" onclick="window.location='mainpage.php'"><i class="fas fa-home text-xl"></i></button>
-    <button title="Orders" onclick="window.location='page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
-    <button title="Inventory" onclick="window.location='product.php'"><i class="fas fa-box text-xl"></i></button>
-    <button title="Reports" onclick="window.location='reports.php'"><i class="fas fa-chart-bar text-xl"></i></button>
-    <button title="Users" onclick="window.location='user.php'"><i class="fas fa-users text-xl"></i></button>
-    <button title="Menu" onclick="window.location='menu.php'"><i class="fas fa-bars text-xl"></i></button>
-    <button title="Settings" onclick="window.location='settings.php'"><i class="fas fa-cog text-xl"></i></button>
-    <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>
-  </aside>
+ <!-- Sidebar -->
+<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+  <img src="images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+  <button title="Home" onclick="window.location='mainpage.php'"><i class="fas fa-home text-xl"></i></button>
+  <button title="Orders" onclick="window.location='page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
+  <button title="Order List" onclick="window.location='orderlist.php'"><i class="fas fa-list text-xl"></i></button>
+  <button title="Inventory" onclick="window.location='product.php'"><i class="fas fa-box text-xl"></i></button>
+  <button title="Reports" onclick="window.location='chart.php'"><i class="fas fa-chart-bar text-xl"></i></button>
+  <button title="Users" onclick="window.location='user.php'"><i class="fas fa-users text-xl"></i></button>
+  <button title="Menu" onclick="window.location='menu.php'"><i class="fas fa-bars text-xl"></i></button>
+  <button title="Settings" onclick="window.location='settings.php'"><i class="fas fa-cog text-xl"></i></button>
+  <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>
+</aside>
 
   <!-- Main content -->
   <!-- Main content -->
@@ -101,7 +102,7 @@ $ownerName = $_SESSION['OwnerFN'];
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = 'logout.php';
+          window.location.href = 'logoutOE.php';
         }
       });
     });

@@ -7,7 +7,7 @@ if (!isset($_SESSION['OwnerID'])) {
   exit();
 }
 
-require_once('classes/database.php');
+require_once('../classes/database.php');
 $con = new database();
 $sweetAlertConfig = "";
 
@@ -211,7 +211,7 @@ function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
       confirmBtn.disabled = true;
       return;
     }
-    fetch('ajax/check_employeeusername.php', {
+    fetch('ajax/check_employename.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `username=${encodeURIComponent(username)}`
@@ -372,7 +372,7 @@ document.getElementById('logout-btn').addEventListener('click', function(e) {
     cancelButtonText: 'Cancel'
   }).then((result) => {
     if (result.isConfirmed) {
-      window.location.href = 'logout.php';
+      window.location.href = 'logoutOE.php';
     }
   });
 });
