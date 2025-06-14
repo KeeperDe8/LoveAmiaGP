@@ -2,7 +2,7 @@
 session_start();
 $sweetAlertConfig = ""; 
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: loginOwnerEM.php');
+  header('Location: login.php');
   exit();
 }
 require_once('classes/database.php');
@@ -94,10 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'">
      <i class="fas fa-users"></i>
    </button>
-   <button aria-label="Menu" class="text-[#4B2E0E] text-xl" title="Menu" type="button">
-    <i class="fas fa-bars"></i>
-   </button>
-   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
+   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'">
     <i class="fas fa-cog"></i>
    </button>
    <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
@@ -393,7 +390,7 @@ echo json_encode(array_map(function($p) {
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "logoutOE.php";
+         window.location.href = "logout.php";
        }
      });
    });

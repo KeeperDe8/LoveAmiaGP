@@ -2,7 +2,7 @@
 <?php 
 session_start();
 if (!isset($_SESSION['EmployeeID'])) {
-  header('Location: loginOwnerEM.php');
+  header('Location: login.php');
   exit();
 }
 require_once('classes/database.php');
@@ -346,7 +346,7 @@ echo json_encode(array_map(function($p) {
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = "../logoutOE.php";
+          window.location.href = "logout.php";
         }
       });
     });

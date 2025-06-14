@@ -3,7 +3,7 @@
 session_start();
 
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: loginOwnerEM.php');
+  header('Location: login.php');
   exit();
 }
 
@@ -124,7 +124,7 @@ if (isset($_POST['add_employee'])) {
           <td class="py-2 px-3"><?= $employee['E_Email'] ?></td>
           <td class="py-2 px-3"><?= $employee['E_Username'] ?></td>
           <td class="py-2 px-3">
-            <a href="#" class="text-blue-600 hover:underline text-xs mr-2"><i class="fas fa-edit"></i></a>
+            <a href="#"  class="text-blue-600 hover:underline text-xs mr-2"><i class="fas fa-edit"></i></a>
             <a href="#" class="text-red-600 hover:underline text-xs"><i class="fas fa-trash"></i></a>
           </td>
         </tr>
@@ -372,7 +372,7 @@ document.getElementById('logout-btn').addEventListener('click', function(e) {
     cancelButtonText: 'Cancel'
   }).then((result) => {
     if (result.isConfirmed) {
-      window.location.href = 'logoutOE.php';
+      window.location.href = 'logout.php';
     }
   });
 });

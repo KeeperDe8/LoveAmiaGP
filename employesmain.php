@@ -2,7 +2,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['EmployeeID'])) {
-    header('Location: loginOwnerEM.php');
+    header('Location: login.php');
     exit();
 }
 // Show the employee's username if available, otherwise fallback to first name or "Employee"
@@ -90,7 +90,7 @@ $employeeDisplay = isset($_SESSION['E_Username']) ? $_SESSION['E_Username'] : (i
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = 'logoutOE.php';
+          window.location.href = 'logout.php';
         }
       });
     });

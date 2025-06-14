@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: loginOwnerEM.php');
+  header('Location: login.php');
   exit();
 }
 $ownerName = $_SESSION['OwnerFN'];
@@ -44,8 +44,7 @@ $ownerName = $_SESSION['OwnerFN'];
   <button title="Inventory" onclick="window.location='product.php'"><i class="fas fa-box text-xl"></i></button>
   <button title="Reports" onclick="window.location='chart.php'"><i class="fas fa-chart-bar text-xl"></i></button>
   <button title="Users" onclick="window.location='user.php'"><i class="fas fa-users text-xl"></i></button>
-  <button title="Menu" onclick="window.location='menu.php'"><i class="fas fa-bars text-xl"></i></button>
-  <button title="Settings" onclick="window.location='settings.php'"><i class="fas fa-cog text-xl"></i></button>
+  <button title="Settings" onclick="window.location='setting.php'"><i class="fas fa-cog text-xl"></i></button>
   <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>
 </aside>
 
@@ -102,7 +101,7 @@ $ownerName = $_SESSION['OwnerFN'];
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = 'logoutOE.php';
+          window.location.href = 'logout.php';
         }
       });
     });

@@ -198,7 +198,7 @@ if (isset($_POST['add_product'])) {
       cancelButtonText: 'Cancel'
     }).then((result) => {
       if (result.isConfirmed) {
-        window.location.href = 'logoutOE.php';
+        window.location.href = 'logout.php';
       }
     });
   });

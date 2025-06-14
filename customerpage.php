@@ -75,10 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" disabled>
       <i class="fas fa-shopping-bag"></i>
     </button>
-    <button aria-label="Menu" class="text-[#4B2E0E] text-xl" title="Menu" type="button">
-      <i class="fas fa-bars"></i>
-    </button>
-    <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button">
+    <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'">
       <i class="fas fa-cog"></i>
     </button>
     <button id="logout-btn" aria-label="Logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
