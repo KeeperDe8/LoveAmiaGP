@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: login.php');
+  header('Location: ../all/login.php');
   exit();
 }
 $ownerName = $_SESSION['OwnerFN'];
@@ -19,7 +19,7 @@ $ownerName = $_SESSION['OwnerFN'];
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-image: url('images/LAbg.png');
+      background-image: url('../images/LAbg.png');
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
@@ -37,18 +37,17 @@ $ownerName = $_SESSION['OwnerFN'];
 
  <!-- Sidebar -->
 <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-  <img src="images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
-  <button title="Home" onclick="window.location='mainpage.php'"><i class="fas fa-home text-xl"></i></button>
-  <button title="Orders" onclick="window.location='page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
-  <button title="Order List" onclick="window.location='orderlist.php'"><i class="fas fa-list text-xl"></i></button>
-  <button title="Inventory" onclick="window.location='product.php'"><i class="fas fa-box text-xl"></i></button>
-  <button title="Reports" onclick="window.location='chart.php'"><i class="fas fa-chart-bar text-xl"></i></button>
-  <button title="Users" onclick="window.location='user.php'"><i class="fas fa-users text-xl"></i></button>
-  <button title="Settings" onclick="window.location='setting.php'"><i class="fas fa-cog text-xl"></i></button>
+  <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+  <button title="Home" onclick="window.location='../Owner/mainpage.php'"><i class="fas fa-home text-xl"></i></button>
+  <button title="Orders" onclick="window.location='../Owner/page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
+  <button title="Order List" onclick="window.location='../all/orderlist.php'"><i class="fas fa-list text-xl"></i></button>
+  <button title="Inventory" onclick="window.location='../Owner/product.php'"><i class="fas fa-box text-xl"></i></button>
+  <button title="Reports" onclick="window.location='../Owner/chart.php'"><i class="fas fa-chart-bar text-xl"></i></button>
+  <button title="Users" onclick="window.location='../Owner/user.php'"><i class="fas fa-users text-xl"></i></button>
+  <button title="Settings" onclick="window.location='../all/setting.php'"><i class="fas fa-cog text-xl"></i></button>
   <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>
 </aside>
 
-  <!-- Main content -->
   <!-- Main content -->
 <main class="flex-1 p-10 flex items-center justify-center text-center">
   <div class="bg-white bg-opacity-80 backdrop-blur-md rounded-2xl shadow-xl px-10 py-12 max-w-4xl w-100">
@@ -101,7 +100,7 @@ $ownerName = $_SESSION['OwnerFN'];
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          window.location.href = 'logout.php';
+          window.location.href = "../all/logout.php";
         }
       });
     });

@@ -6,7 +6,7 @@ class database {
     function opencon() {
         return new PDO(
             'mysql:host=localhost;
-            dbname=amaihatest',
+            dbname=amaihatest', // VERIFY THIS DATABASE NAME IS CORRECT!
             username: 'root',
             password: ''
         );
@@ -28,13 +28,22 @@ class database {
     }
 }
 
-   function isUsernameExists($username) {
+function isUsernameExists($username) {
     $con = $this->opencon();
-    $stmt = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Username = ?");
-    $stmt->execute([$username]);
-    $count = $stmt->fetchColumn();
-    return $count > 0;
+
+    // Check in customer table
+    $stmt1 = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Username = ?");
+    $stmt1->execute([$username]);
+    $count1 = $stmt1->fetchColumn();
+
+    // Check in employee table
+    $stmt2 = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Username = ?");
+    $stmt2->execute([$username]);
+    $count2 = $stmt2->fetchColumn();
+
+    return ($count1 > 0 || $count2 > 0);
 }
+
 
 function isEmailExists($email) {
     $con = $this->opencon();
@@ -91,7 +100,7 @@ function loginEmployee($username, $password) {
             $con->beginTransaction();
             $stmt = $con->prepare("INSERT INTO employee (EmployeeFN, EmployeeLN, E_Username, E_Password, Role, E_PhoneNumber, E_Email, OwnerID) 
                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$firstF, $firstN, $Euser, $password, $role, $emailN, $number, $owerID]);
+            $stmt->execute([$firstF, $firstN, $Euser, $password, $role, $number,$emailN, $owerID]);
             $userID = $con->lastInsertId();
             $con->commit();
             return $userID;
@@ -105,6 +114,60 @@ function loginEmployee($username, $password) {
     function getEmployee() {
         $con = $this->opencon();
         return $con->query("SELECT * FROM employee")->fetchAll();
+    }
+
+    // New function to delete an employee (make sure this is in your classes/database.php)
+    function deleteEmployee($employeeID): bool {
+        $con = $this->opencon();
+        try {
+            $stmt = $con->prepare("DELETE FROM employee WHERE EmployeeID = ?");
+            return $stmt->execute([$employeeID]);
+        } catch (PDOException $e) {
+            error_log("DeleteEmployee Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+     function deleteProduct($productID): bool {
+        $con = $this->opencon();
+        try {
+            $con->beginTransaction();
+
+            // First, delete associated product prices
+            $stmt_prices = $con->prepare("DELETE FROM productprices WHERE ProductID = ?");
+            $stmt_prices->execute([$productID]);
+
+            // Now, delete the product itself
+            $stmt_product = $con->prepare("DELETE FROM product WHERE ProductID = ?");
+            $result = $stmt_product->execute([$productID]);
+
+            $con->commit();
+            return $result;
+        } catch (PDOException $e) {
+            $con->rollBack();
+            error_log("DeleteProduct Error: " . $e->getMessage());
+            if (strpos($e->getMessage(), 'Cannot delete or update a parent row: a foreign key constraint fails') !== false) {
+            
+            }
+            return false;
+        }
+    }
+
+    
+
+
+     function updateProductPrice($priceID, $unitPrice, $effectiveFrom, $effectiveTo): bool {
+        $con = $this->opencon();
+        try {
+            $stmt = $con->prepare("UPDATE productprices SET UnitPrice = ?, Effective_From = ?, Effective_To = ? WHERE PriceID = ?");
+            // If effectiveTo is an empty string, convert it to NULL for the database
+            $effectiveTo = empty($effectiveTo) ? NULL : $effectiveTo;
+            return $stmt->execute([$unitPrice, $effectiveFrom, $effectiveTo, $priceID]);
+        } catch (PDOException $e) {
+            error_log("UpdateProductPrice Error: " . $e->getMessage());
+            return false;
+        }
     }
 
     function addProduct($productName, $category, $price, $createdAt, $effectiveFrom, $effectiveTo, $ownerID) {
@@ -126,12 +189,12 @@ function loginEmployee($username, $password) {
             return false;
         }
     }
-
     function getJoinedProductData() {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT product.ProductID, product.ProductName, product.ProductCategory, product.Created_AT, 
-                                      productprices.UnitPrice, productprices.Effective_From, productprices.Effective_To 
-                               FROM product 
+        $stmt = $con->prepare("SELECT product.ProductID, product.ProductName, product.ProductCategory, product.Created_AT,
+                                      productprices.UnitPrice, productprices.Effective_From, productprices.Effective_To,
+                                      productprices.PriceID  -- <--- ADDED THIS LINE
+                               FROM product
                                JOIN productprices ON product.ProductID = productprices.ProductID");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -177,6 +240,4 @@ function loginEmployee($username, $password) {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    
-    
 }

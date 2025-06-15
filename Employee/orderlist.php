@@ -13,7 +13,7 @@ $lastPayment = isset($_SESSION['last_payment_method']) ? ucfirst($_SESSION['last
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex flex-col items-center justify-center">
   <div class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-8 shadow-lg max-w-xl w-full mt-10">
     <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
-      <i class="fas fa-list"></i> Order List
+      <i class="fas fa-list"></i> Transaction Records
     </h1>
     <div class="mb-4">
       <p class="text-gray-700">This is a dummy order list for testing.</p>
@@ -30,7 +30,7 @@ $lastPayment = isset($_SESSION['last_payment_method']) ? ucfirst($_SESSION['last
       </li>
     </ul>
     <div class="mt-6 flex justify-end">
-      <a href="page.php" class="bg-[#4B2E0E] text-white px-4 py-2 rounded-full font-semibold hover:bg-[#6b3e14] transition">Back to Order</a>
+      <a href="../Employee/employeepage.php" class="bg-[#4B2E0E] text-white px-4 py-2 rounded-full font-semibold hover:bg-[#6b3e14] transition">Back to Order</a>
     </div>
   </div>
 </body>

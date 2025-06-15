@@ -2,11 +2,11 @@
 <?php 
 session_start();
 $sweetAlertConfig = ""; 
-if (!isset($_SESSION['OwnerID'])) {
-  header('Location: login.php');
+if (!isset($_SESSION['EmployeeID'])) {
+  header('Location: ../all/login.php');
   exit();
 }
-require_once('classes/database.php');
+require_once('../classes/database.php');
 $con = new database();
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
@@ -15,7 +15,7 @@ $categories = $con->getAllCategories();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     $orderData = json_decode($_POST['orderData'], true);
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
-    $ownerID = $_SESSION['OwnerID'];
+    $employeeID = $_SESSION['EmployeeID'];
     $totalAmount = 0;
 
     foreach ($orderData as $item) {
@@ -24,9 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
 
     $db = $con->opencon();
 
-    // 1. Insert into ordersection (UserTypeID=1 for owner)
+    // 1. Insert into ordersection (UserTypeID=2 for employee)
     $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
-    $stmt->execute([null, null, $ownerID, 1]);
+    $stmt->execute([null, $employeeID, null, 2]);
     $orderSID = $db->lastInsertId();
 
     // 2. Insert into orders with the new OrderSID
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     }
 
     $_SESSION['last_payment_method'] = $paymentMethod;
-    header("Location: mainpage.php");
+    header("Location: ../Employee/employesmain.php");
     exit;
 }
 ?>
@@ -72,12 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'"><i class="fas fa-home"></i></button>
-   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'"><i class="fas fa-shopping-cart"></i></button>
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='orderlist.php'"><i class="fas fa-list"></i></button>
-   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'"><i class="fas fa-box"></i></button>
-   <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'"><i class="fas fa-users"></i></button>
-   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'"><i class="fas fa-cog"></i></button>
+   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='../Employee/employesmain.php'"><i class="fas fa-home"></i></button>
+   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='../Employee/employeepage.php'"><i class="fas fa-shopping-cart"></i></button>
+   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Transaction Records" type="button" onclick="window.location='../Employee/orderlist.php'"><i class="fas fa-list"></i></button>
+   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='../Employee/productemployee.php'"><i class="fas fa-box"></i></button>
+   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='../all/setting.php'"><i class="fas fa-cog"></i></button>
    <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
   </aside>
 
@@ -86,17 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
-    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
-    <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
-     <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
-     <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit"><i class="fas fa-search"></i></button>
-    </form>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Employee Homepage</h1>
+        </form>
    </header>
 
    <!-- Category buttons -->
    <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav"></nav>
    <!-- Coffee Menu Grid -->
-   <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
+   <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items"></div>
    </section>
   </main>
@@ -106,9 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <div>
     <?php
     $customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
-    $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['order_type'])) : 'DINE IN/TAKE OUT';
     ?>
-    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button"><?php echo $orderType; ?></button>
     <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo "{$customer}'s Order:"; ?></h2>
     <div class="text-xs text-gray-700" id="order-list">
      <p class="font-semibold mb-1">CATEGORY</p>
@@ -334,7 +328,7 @@ echo json_encode(array_map(function($p) {
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "logout.php";
+         window.location.href = "../all/logout.php";
        }
      });
    });
@@ -388,4 +382,4 @@ echo json_encode(array_map(function($p) {
    attachCategoryEvents();
   </script>
  </body>
-</html> 
+</html>

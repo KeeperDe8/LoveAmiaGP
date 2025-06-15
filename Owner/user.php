@@ -1,20 +1,19 @@
-
-<?php 
+<?php
 session_start();
-
+ 
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: login.php');
+  header('Location: ../all/login.php');
   exit();
 }
-
-require_once('classes/database.php');
+ 
+require_once('../classes/database.php'); // CORRECTED PATH: Assumes 'classes' is one level up
 $con = new database();
 $sweetAlertConfig = "";
-
-// Debugging
+ 
+// Debugging (Keep these for now, remove in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
+ 
 // Add employee
 if (isset($_POST['add_employee'])) {
   $owerID = $_SESSION['OwnerID'];
@@ -25,9 +24,9 @@ if (isset($_POST['add_employee'])) {
   $emailN = $_POST['email'];
   $Euser = $_POST['username'];
   $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
-
+ 
   $userID = $con->addEmployee($firstF, $firstN, $Euser, $password, $role, $emailN,  $number, $owerID);
-
+ 
   if ($userID) {
     $sweetAlertConfig = "
     <script>
@@ -57,7 +56,7 @@ if (isset($_POST['add_employee'])) {
   }
 }
 ?>
-
+ 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,14 +77,13 @@ if (isset($_POST['add_employee'])) {
   </style>
 </head>
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
-
+ 
 <!-- Sidebar -->
 <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
   <button title="Home" onclick="window.location='page.php'" class="text-[#4B2E0E] text-xl"><i class="fas fa-home"></i></button>
   <button title="Users" class="text-[#4B2E0E] text-xl"><i class="fas fa-users"></i></button>
-  <button id="logout-btn" title="Logout" class="text-[#4B2E0E] text-xl"><i class="fas fa-sign-out-alt"></i></button>
 </aside>
-
+ 
 <!-- Main content -->
 <main class="flex-1 p-6 relative flex flex-col">
   <header class="mb-4 flex items-center justify-between">
@@ -97,7 +95,7 @@ if (isset($_POST['add_employee'])) {
       <i class="fas fa-user-plus mr-2"></i>Add Employee
     </a>
   </header>
-
+ 
   <section class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-6xl shadow-lg flex-1 overflow-x-auto">
     <table class="min-w-full text-sm">
       <thead>
@@ -108,7 +106,7 @@ if (isset($_POST['add_employee'])) {
           <th class="py-2 px-3">Phone</th>
           <th class="py-2 px-3">Email</th>
           <th class="py-2 px-3">Username</th>
-          <th class="py-2 px-3">Actions</th>
+          <th class="py-2 px-3 text-center">Actions</th> <!-- Added text-center for the header too -->
         </tr>
       </thead>
       <tbody>
@@ -117,23 +115,25 @@ if (isset($_POST['add_employee'])) {
         foreach ($employees as $employee) {
         ?>
         <tr class="border-b hover:bg-gray-50">
-          <td class="py-2 px-3"><?= $employee['EmployeeID'] ?></td>
-          <td class="py-2 px-3"><?= $employee['EmployeeFN'] . ' ' . $employee['EmployeeLN'] ?></td>
-          <td class="py-2 px-3"><?= $employee['Role'] ?></td>
-          <td class="py-2 px-3"><?= $employee['E_PhoneNumber'] ?></td>
-          <td class="py-2 px-3"><?= $employee['E_Email'] ?></td>
-          <td class="py-2 px-3"><?= $employee['E_Username'] ?></td>
-          <td class="py-2 px-3">
-            
-            <a href="#"  class="text-blue-600 hover:underline text-xs mr-2"><i class="fas fa-edit"></i></a>
-            <a href="#" class="text-red-600 hover:underline text-xs"><i class="fas fa-trash"></i></a>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['EmployeeID']) ?></td>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['EmployeeFN'] . ' ' . $employee['EmployeeLN']) ?></td>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['Role']) ?></td>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['E_PhoneNumber']) ?></td>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['E_Email']) ?></td>
+          <td class="py-2 px-3"><?= htmlspecialchars($employee['E_Username']) ?></td>
+          <td class="py-2 px-3 text-center"> <!-- Added 'text-center' class here -->
+            <a href="#" class="text-red-600 hover:underline text-xs delete-employee-btn"
+               data-employee-id="<?= htmlspecialchars($employee['EmployeeID']) ?>"
+               data-employee-name="<?= htmlspecialchars($employee['EmployeeFN'] . ' ' . $employee['EmployeeLN']) ?>">
+              <i class="fas fa-trash"></i>
+            </a>
           </td>
         </tr>
         <?php } ?>
-      </tbody>git
+      </tbody>
     </table>
   </section>
-
+ 
   <!-- Hidden form -->
   <form id="add-employee-form" method="POST" style="display:none;">
     <input type="hidden" name="firstF" id="form-firstF">
@@ -145,16 +145,16 @@ if (isset($_POST['add_employee'])) {
     <input type="hidden" name="password" id="form-password">
     <input type="hidden" name="add_employee" value="1">
   </form>
-
+ 
   <?= $sweetAlertConfig ?>
 </main>
-
+ 
 <script>
 // Validation functions
 const isNotEmpty = (value) => value.trim() !== '';
 const isPasswordValid = (value) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/.test(value);
 const isPhoneValid = (value) => /^09\d{9}$/.test(value);
-
+ 
 // Helper for field state
 function setSwalFieldState(field, isValid, message) {
   if (isValid) {
@@ -169,7 +169,7 @@ function setSwalFieldState(field, isValid, message) {
     field.nextElementSibling.textContent = message;
   }
 }
-
+ 
 // Real-time email check
 function checkEmployeeEmailAvailability(emailField, confirmBtn) {
   emailField.addEventListener('input', () => {
@@ -179,7 +179,8 @@ function checkEmployeeEmailAvailability(emailField, confirmBtn) {
       confirmBtn.disabled = true;
       return;
     }
-    fetch('ajax/check_employeemail.php', {
+    // Assumes ajax folder is sibling to Owner folder
+    fetch('../ajax/check_employeemail.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `email=${encodeURIComponent(email)}`
@@ -200,7 +201,7 @@ function checkEmployeeEmailAvailability(emailField, confirmBtn) {
       });
   });
 }
-
+ 
 // Real-time username check
 function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
   usernameField.addEventListener('input', () => {
@@ -212,7 +213,8 @@ function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
       confirmBtn.disabled = true;
       return;
     }
-    fetch('ajax/check_employename.php', {
+    // Assumes ajax folder is sibling to Owner folder
+    fetch('../ajax/check_employename.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `username=${encodeURIComponent(username)}`
@@ -237,7 +239,7 @@ function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
       });
   });
 }
-
+ 
 document.getElementById('add-employee-btn').addEventListener('click', function (e) {
   e.preventDefault();
   Swal.fire({
@@ -251,11 +253,14 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
           <option value="Cashier">Cashier</option>
         </select>
        <input id="swal-emp-phone" class="swal2-input" placeholder="Phone Number">
+       <span class="swal-feedback"></span> <!-- Added feedback span for phone number -->
        <input id="swal-emp-email" class="swal2-input" type="email" placeholder="Email">
        <span class="swal-feedback"></span>
        <input id="swal-emp-username" class="swal2-input" placeholder="Username">
        <span class="swal-feedback"></span>
-       <input id="swal-emp-password" class="swal2-input" type="password" placeholder="Password">`,
+       <input id="swal-emp-password" class="swal2-input" type="password" placeholder="Password">
+       <span class="swal-feedback"></span> <!-- Added feedback span for password -->
+       `,
     showCancelButton: true,
     confirmButtonText: 'Add',
     preConfirm: () => {
@@ -266,28 +271,30 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       const email = document.getElementById('swal-emp-email').value.trim();
       const username = document.getElementById('swal-emp-username').value.trim();
       const password = document.getElementById('swal-emp-password').value;
-
+ 
       if (!firstF || !firstN || !role || !number || !email || !username || !password) {
         Swal.showValidationMessage('All fields are required');
         return false;
       }
       if (!isPhoneValid(number)) {
-        Swal.showValidationMessage('Invalid Philippine phone number');
+        Swal.showValidationMessage('Invalid Philippine phone number (e.g., 09xxxxxxxxx)');
         return false;
       }
       if (!isPasswordValid(password)) {
         Swal.showValidationMessage('Password must have at least 6 characters, 1 uppercase, 1 number, and 1 special character');
         return false;
       }
-      // Check if username/email fields are marked invalid
+      // Check if username/email/phone/password fields are marked invalid (real-time validation)
       if (
         document.getElementById('swal-emp-email').classList.contains('is-invalid') ||
-        document.getElementById('swal-emp-username').classList.contains('is-invalid')
+        document.getElementById('swal-emp-username').classList.contains('is-invalid') ||
+        document.getElementById('swal-emp-phone').classList.contains('is-invalid') ||
+        document.getElementById('swal-emp-password').classList.contains('is-invalid')
       ) {
         Swal.showValidationMessage('Please fix the errors in the form');
         return false;
       }
-
+ 
       document.getElementById('form-firstF').value = firstF;
       document.getElementById('form-firstN').value = firstN;
       document.getElementById('form-role').value = role;
@@ -295,7 +302,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       document.getElementById('form-email').value = email;
       document.getElementById('form-username').value = username;
       document.getElementById('form-password').value = password;
-
+ 
       return true;
     },
     didOpen: () => {
@@ -304,8 +311,8 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       const phoneField = document.getElementById('swal-emp-phone');
       const passwordField = document.getElementById('swal-emp-password');
       const confirmBtn = document.querySelector('.swal2-confirm');
-
-      // Add feedback spans if not present
+ 
+      // Add feedback spans if not present for new fields
       if (!emailField.nextElementSibling || !emailField.nextElementSibling.classList.contains('swal-feedback')) {
         const span = document.createElement('span');
         span.className = 'swal-feedback';
@@ -316,41 +323,63 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
         span.className = 'swal-feedback';
         usernameField.parentNode.insertBefore(span, usernameField.nextSibling);
       }
+      // Ensure feedback spans are present for phone and password fields too
+      if (!phoneField.nextElementSibling || !phoneField.nextElementSibling.classList.contains('swal-feedback')) {
+        const span = document.createElement('span');
+        span.className = 'swal-feedback';
+        phoneField.parentNode.insertBefore(span, phoneField.nextSibling);
+      }
+      if (!passwordField.nextElementSibling || !passwordField.nextElementSibling.classList.contains('swal-feedback')) {
+        const span = document.createElement('span');
+        span.className = 'swal-feedback';
+        passwordField.parentNode.insertBefore(span, passwordField.nextSibling);
+      }
+
 
       checkEmployeeEmailAvailability(emailField, confirmBtn);
       checkEmployeeUsernameAvailability(usernameField, confirmBtn);
-
+ 
       // Real-time phone validation
       phoneField.addEventListener('input', () => {
         const value = phoneField.value.trim();
+        const feedbackSpan = phoneField.nextElementSibling && phoneField.nextElementSibling.classList.contains('swal-feedback') ? phoneField.nextElementSibling : null;
+
         if (value === '') {
-          phoneField.classList.remove('is-valid', 'is-invalid');
-          phoneField.style.borderColor = '';
+            phoneField.classList.remove('is-valid', 'is-invalid');
+            phoneField.style.borderColor = '';
+            if (feedbackSpan) feedbackSpan.textContent = '';
         } else if (isPhoneValid(value)) {
-          phoneField.classList.remove('is-invalid');
-          phoneField.classList.add('is-valid');
-          phoneField.style.borderColor = '#198754';
+            phoneField.classList.remove('is-invalid');
+            phoneField.classList.add('is-valid');
+            phoneField.style.borderColor = '#198754';
+            if (feedbackSpan) feedbackSpan.textContent = '';
         } else {
-          phoneField.classList.remove('is-valid');
-          phoneField.classList.add('is-invalid');
-          phoneField.style.borderColor = '#dc3545';
+            phoneField.classList.remove('is-valid');
+            phoneField.classList.add('is-invalid');
+            phoneField.style.borderColor = '#dc3545';
+            if (feedbackSpan) feedbackSpan.textContent = 'Invalid Philippine phone number (e.g., 09xxxxxxxxx)';
         }
       });
-
+ 
       // Real-time password validation
       passwordField.addEventListener('input', () => {
         const value = passwordField.value.trim();
+        const feedbackSpan = passwordField.nextElementSibling && passwordField.nextElementSibling.classList.contains('swal-feedback') ? passwordField.nextElementSibling : null;
+
         if (value === '') {
-          passwordField.classList.remove('is-valid', 'is-invalid');
-          passwordField.style.borderColor = '';
+            passwordField.classList.remove('is-valid', 'is-invalid');
+            passwordField.style.borderColor = '';
+            if (feedbackSpan) feedbackSpan.textContent = '';
         } else if (isPasswordValid(value)) {
-          passwordField.classList.remove('is-invalid');
-          passwordField.classList.add('is-valid');
-          passwordField.style.borderColor = '#198754';
+            passwordField.classList.remove('is-invalid');
+            passwordField.classList.add('is-valid');
+            passwordField.style.borderColor = '#198754';
+            if (feedbackSpan) feedbackSpan.textContent = '';
         } else {
-          passwordField.classList.remove('is-valid');
-          passwordField.classList.add('is-invalid');
-          passwordField.style.borderColor = '#dc3545';
+            passwordField.classList.remove('is-valid');
+            passwordField.classList.add('is-invalid');
+            passwordField.style.borderColor = '#dc3545';
+            if (feedbackSpan) feedbackSpan.textContent = 'Password must have at least 6 characters, 1 uppercase, 1 number, and 1 special character.';
         }
       });
     }
@@ -360,21 +389,75 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
     }
   });
 });
+ 
+// JavaScript for Delete Button
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.delete-employee-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault(); // Prevent default link behavior
+ 
+      const employeeId = this.dataset.employeeId;
+      const employeeName = this.dataset.employeeName;
+ 
+      Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to delete ${employeeName}. This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Send AJAX request to delete the employee
+          const formData = new FormData();
+          formData.append('employee_id', employeeId);
 
-document.getElementById('logout-btn').addEventListener('click', function(e) {
-  e.preventDefault();
-  Swal.fire({
-    title: 'Are you sure you want to log out?',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#4B2E0E',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Yes, log out',
-    cancelButtonText: 'Cancel'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      window.location.href = 'logout.php';
-    }
+          fetch('delete_employee.php', { // Path to the delete script in the same directory
+            method: 'POST',
+            body: formData
+          })
+          .then(response => {
+            // Check if the response is OK before trying to parse as JSON
+            if (!response.ok) {
+                // If response is not OK (e.g., 403, 400, 500), try to get text to debug
+                return response.text().then(text => { // Get raw text to see PHP errors/warnings
+                    console.error('Server response was not OK:', text);
+                    throw new Error(`Server returned status ${response.status}. Check console for details. Raw response: ${text.substring(0, 100)}...`);
+                });
+            }
+            return response.json(); // Attempt to parse as JSON only if response is OK
+          })
+          .then(data => {
+            if (data.success) {
+              Swal.fire(
+                'Deleted!',
+                `${employeeName} has been deleted.`,
+                'success'
+              ).then(() => {
+                // Remove the row from the table upon successful deletion
+                this.closest('tr').remove();
+              });
+            } else {
+              Swal.fire(
+                'Error!',
+                data.message || `Failed to delete ${employeeName}.`,
+                'error'
+              );
+            }
+          })
+          .catch(error => {
+            console.error('Fetch Error:', error);
+            Swal.fire(
+              'Error!',
+              `An error occurred: ${error.message}`,
+              'error'
+            );
+          });
+        }
+      });
+    });
   });
 });
 </script>

@@ -4,7 +4,7 @@ if (!isset($_SESSION['EmployeeID'])) {
   header('Location: login.php');
   exit();
 }
-require_once('classes/database.php');
+require_once('../classes/database.php');
 $con = new database();
 $sweetAlertConfig = "";
 error_reporting(E_ALL);
@@ -27,7 +27,6 @@ ini_set('display_errors', 1);
 <aside class="bg-white w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
   <button class="text-[#4B2E0E] text-xl" title="Home" onclick="window.location='employeepage.php'"><i class="fas fa-home"></i></button>
   <button class="text-[#4B2E0E] text-xl" title="Products"><i class="fas fa-boxes"></i></button>
-  <button id="logout-btn" class="text-[#4B2E0E] text-xl" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
 </aside>
 
 <!-- Main Content -->
@@ -74,27 +73,5 @@ ini_set('display_errors', 1);
 
   <?= $sweetAlertConfig ?>
 </main>
-
-<!-- SweetAlert -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-  document.getElementById('logout-btn').addEventListener('click', function(e) {
-    e.preventDefault();
-    Swal.fire({
-      title: 'Are you sure you want to log out?',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#4B2E0E',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, log out',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        window.location.href = 'logout.php';
-      }
-    });
-  });
-</script>
-
 </body>
 </html>

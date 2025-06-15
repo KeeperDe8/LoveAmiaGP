@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once('classes/database.php');
+require_once('../classes/database.php');
 $con = new database();
 
 // Allow access if any user is logged in, otherwise redirect to login
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
-            background: url('images/LAbg.png') no-repeat center center fixed;
+            background: url('../images/LAbg.png') no-repeat center center fixed;
             background-size: cover;
         }
     </style>
@@ -109,15 +109,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Back Button -->
         <div class="mb-4">
           <?php if (isset($_SESSION['CustomerID'])): ?>
-            <a href="customerpage.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
+            <a href="../Customer/customerpage.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
               &larr; Back to Customer Page
             </a>
           <?php elseif (isset($_SESSION['EmployeeID'])): ?>
-            <a href="employesmain.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
+            <a href="../Employee/employesmain.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
               &larr; Back to Employee Page
             </a>
           <?php elseif (isset($_SESSION['OwnerID'])): ?>
-            <a href="page.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
+            <a href="../Owner/page.php" class="inline-flex items-center px-4 py-2 bg-[#c19a6b] text-white rounded-lg hover:bg-[#a17850] transition">
               &larr; Back to Owner Page
             </a>
           <?php endif; ?>
