@@ -76,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'"><i class="fas fa-shopping-cart"></i></button>
    <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='orderlist.php'"><i class="fas fa-list"></i></button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'"><i class="fas fa-box"></i></button>
-   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button" onclick="window.location='chart.php'"><i class="fas fa-chart-bar"></i></button>
    <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'"><i class="fas fa-users"></i></button>
    <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'"><i class="fas fa-cog"></i></button>
    <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>

@@ -176,4 +176,7 @@ function loginEmployee($username, $password) {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
+
+    
+    
 }

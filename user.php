@@ -124,12 +124,13 @@ if (isset($_POST['add_employee'])) {
           <td class="py-2 px-3"><?= $employee['E_Email'] ?></td>
           <td class="py-2 px-3"><?= $employee['E_Username'] ?></td>
           <td class="py-2 px-3">
+            
             <a href="#"  class="text-blue-600 hover:underline text-xs mr-2"><i class="fas fa-edit"></i></a>
             <a href="#" class="text-red-600 hover:underline text-xs"><i class="fas fa-trash"></i></a>
           </td>
         </tr>
         <?php } ?>
-      </tbody>
+      </tbody>git
     </table>
   </section>
 
