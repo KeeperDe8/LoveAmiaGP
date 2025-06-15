@@ -240,4 +240,106 @@ function loginEmployee($username, $password) {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
+
+      function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 0): bool {
+    try {
+        // Use the provided PDO object ($pdo) instead of opening a new connection
+        $stmt = $pdo->prepare("INSERT INTO payment (OrderID, PaymentMethod, PaymentAmount, PaymentStatus, ReferenceNo) VALUES (?, ?, ?, ?, ?)");
+        
+        // You can keep this error_log line for debugging if you wish, remove for production
+        error_log("addPaymentRecord parameters: OrderID={$orderID}, Method={$paymentMethod}, Amount={$paymentAmount}, RefNo={$referenceNo}, Status={$paymentStatus}");
+        
+        return $stmt->execute([$orderID, $paymentMethod, $paymentAmount, $paymentStatus, $referenceNo]);
+    } catch (PDOException $e) {
+        error_log("AddPaymentRecord Error: " . $e->getMessage());
+        // No need to echo/die here now, as it's part of a larger transaction block that handles exceptions.
+        return false;
+    }
+}
+
+    // Function to get full order details for a receipt
+    function getFullOrderDetails($orderID, $referenceNo) {
+        $con = $this->opencon();
+        
+        // Fetch order header and payment details
+        $stmt = $con->prepare("
+            SELECT
+                o.OrderID,
+                o.OrderDate,
+                o.TotalAmount,
+                os.UserTypeID,
+                os.CustomerID,
+                os.EmployeeID,
+                os.OwnerID,
+                p.PaymentMethod,
+                p.ReferenceNo,
+                p.PaymentStatus
+            FROM orders o
+            JOIN ordersection os ON o.OrderSID = os.OrderSID
+            LEFT JOIN payment p ON o.OrderID = p.OrderID
+            WHERE o.OrderID = ? AND p.ReferenceNo = ?
+        ");
+        $stmt->execute([$orderID, $referenceNo]);
+        $orderHeader = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($orderHeader) {
+            // Fetch order details (items)
+            $stmtDetails = $con->prepare("
+                SELECT
+                    od.Quantity,
+                    od.Subtotal,
+                    prod.ProductName,
+                    pp.UnitPrice
+                FROM orderdetails od
+                JOIN product prod ON od.ProductID = prod.ProductID
+                JOIN productprices pp ON od.PriceID = pp.PriceID
+                WHERE od.OrderID = ?
+            ");
+            $stmtDetails->execute([$orderID]);
+            $orderDetails = $stmtDetails->fetchAll(PDO::FETCH_ASSOC);
+
+            $orderHeader['Details'] = $orderDetails; // Attach details to the header
+            return $orderHeader;
+        }
+        return false;
+    }
+
+
+     function getAllOrdersForOwnerView($ownerID) {
+        $con = $this->opencon();
+        // This query fetches orders related to the owner's business.
+        // It joins necessary tables to get customer username, employee/owner names,
+        // payment details, and a concatenated list of items in the order.
+        $stmt = $con->prepare("
+            SELECT
+                o.OrderID,
+                o.OrderDate,
+                o.TotalAmount,
+                os.UserTypeID,
+                c.C_Username AS CustomerUsername,
+                e.EmployeeFN AS EmployeeFirstName,
+                e.EmployeeLN AS EmployeeLastName,
+                ow.OwnerFN AS OwnerFirstName,
+                ow.OwnerLN AS OwnerLastName,
+                p.PaymentMethod,
+                p.ReferenceNo,
+                              GROUP_CONCAT(
+                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')') -- REMOVED od.FORMAT
+                    ORDER BY od.OrderDetailID SEPARATOR '; '
+                ) AS OrderItems
+            FROM orders o
+            JOIN ordersection os ON o.OrderSID = os.OrderSID
+            LEFT JOIN customer c ON os.CustomerID = c.CustomerID
+            LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
+            LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
+            LEFT JOIN payment p ON o.OrderID = p.OrderID
+            LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
+            LEFT JOIN product prod ON od.ProductID = prod.ProductID
+            WHERE os.OwnerID = ?
+            GROUP BY o.OrderID -- Group by OrderID to prevent duplicate rows due to GROUP_CONCAT
+            ORDER BY o.OrderDate DESC
+        ");
+        $stmt->execute([$ownerID]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
