@@ -1,3 +1,4 @@
+
 <?php 
 session_start();
 $sweetAlertConfig = ""; 
@@ -22,10 +23,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     }
 
     $db = $con->opencon();
-    $stmt = $db->prepare("INSERT INTO orders (OrderedByType, OrderedByID, TotalAmount) VALUES ('owner', ?, ?)");
-    $stmt->execute([$ownerID, $totalAmount]);
+
+    // 1. Insert into ordersection (UserTypeID=1 for owner)
+    $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
+    $stmt->execute([null, null, $ownerID, 1]);
+    $orderSID = $db->lastInsertId();
+
+    // 2. Insert into orders with the new OrderSID
+    $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
+    $stmt->execute([$totalAmount, $orderSID]);
     $orderID = $db->lastInsertId();
 
+    // 3. Insert order details
     foreach ($orderData as $item) {
         $productID = intval(str_replace('product-', '', $item['id']));
         $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
@@ -39,10 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
         ]);
     }
 
-    // Store payment method for demo
     $_SESSION['last_payment_method'] = $paymentMethod;
-
-    // Redirect to main page after order
     header("Location: mainpage.php");
     exit;
 }
@@ -52,83 +58,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
-  <title>
-   Coffee Menu with Category Tabs and Add Item Functionality
-  </title>
+  <title>Coffee Menu with Category Tabs and Add Item Functionality</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-   body {
-      font-family: 'Inter', sans-serif;
-    }
-    #menu-scroll::-webkit-scrollbar {
-      width: 6px;
-    }
-    #menu-scroll::-webkit-scrollbar-thumb {
-      background-color: #c4b09a;
-      border-radius: 10px;
-    }
+   body { font-family: 'Inter', sans-serif; }
+   #menu-scroll::-webkit-scrollbar { width: 6px; }
+   #menu-scroll::-webkit-scrollbar-thumb { background-color: #c4b09a; border-radius: 10px; }
   </style>
  </head>
-
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'">
-    <i class="fas fa-home"></i>
-   </button>
-   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'">
-    <i class="fas fa-shopping-cart"></i>
-   </button>
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='orderlist.php'">
-    <i class="fas fa-list"></i>
-   </button>
-   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'">
-    <i class="fas fa-box"></i>
-   </button>
-   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button" onclick="window.location='chart.php'">
-    <i class="fas fa-chart-bar"></i>
-   </button>
-   <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'">
-     <i class="fas fa-users"></i>
-   </button>
-   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'">
-    <i class="fas fa-cog"></i>
-   </button>
-   <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button">
-    <i class="fas fa-sign-out-alt"></i>
-   </button>
+   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'"><i class="fas fa-home"></i></button>
+   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'"><i class="fas fa-shopping-cart"></i></button>
+   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='orderlist.php'"><i class="fas fa-list"></i></button>
+   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'"><i class="fas fa-box"></i></button>
+   <button aria-label="Chart" class="text-[#4B2E0E] text-xl" title="Chart" type="button" onclick="window.location='chart.php'"><i class="fas fa-chart-bar"></i></button>
+   <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'"><i class="fas fa-users"></i></button>
+   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='setting.php'"><i class="fas fa-cog"></i></button>
+   <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
   </aside>
 
   <!-- Main content -->
   <main class="flex-1 p-6 relative flex flex-col">
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <header class="mb-4">
-    <p class="text-xs text-gray-400 mb-0.5">
-     Welcome to Love Amaiah
-    </p>
-    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">
-     Name's Homepage
-    </h1>
+    <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
     <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
      <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
-     <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
-      <i class="fas fa-search"></i>
-     </button>
+     <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit"><i class="fas fa-search"></i></button>
     </form>
    </header>
 
    <!-- Category buttons -->
-   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav">
-    <!-- Category buttons will be generated by JS -->
-   </nav>
+   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav"></nav>
    <!-- Coffee Menu Grid -->
    <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-w-5xl max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items">
-     <!-- Items will be generated by JS -->
-    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items"></div>
    </section>
   </main>
   
@@ -136,42 +106,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
   <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
    <div>
     <?php
-$customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
-$orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['order_type'])) : 'DINE IN/TAKE OUT';
-?>
-
-<button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button">
-  <?php echo $orderType; ?>
-</button>
-
-<h2 class="font-semibold text-[#4B2E0E] mb-2">
-  <?php echo "{$customer}'s Order:"; ?>
-</h2>
+    $customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
+    $orderType = isset($_GET['order_type']) ? strtoupper(htmlspecialchars($_GET['order_type'])) : 'DINE IN/TAKE OUT';
+    ?>
+    <button class="w-full bg-[#4B2E0E] text-white rounded-full py-2 text-sm font-semibold mb-4" type="button"><?php echo $orderType; ?></button>
+    <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo "{$customer}'s Order:"; ?></h2>
     <div class="text-xs text-gray-700" id="order-list">
-     <p class="font-semibold mb-1">
-      CATEGORY
-     </p>
-     <!-- Order items inserted here -->
+     <p class="font-semibold mb-1">CATEGORY</p>
     </div>
    </div>
    <div class="mt-6 text-center">
-    <p class="font-semibold mb-1">
-     Total:
-    </p>
-    <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total">
-     <span>
-      ₱
-     </span>
-     0.00
-    </p>
+    <p class="font-semibold mb-1">Total:</p>
+    <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total"><span>₱</span> 0.00</p>
    </div>
    <div class="mt-6 flex gap-4">
-    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="submit" id="confirm-btn" disabled>
-     Confirm
-    </button>
-    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>
-     Cancel
-    </button>
+    <button class="flex-1 bg-green-500 text-white rounded-lg py-2 font-semibold hover:bg-green-600 transition" type="submit" id="confirm-btn" disabled>Confirm</button>
+    <button class="flex-1 bg-red-500 text-white rounded-lg py-2 font-semibold hover:bg-red-600 transition" type="button" id="cancel-btn" disabled>Cancel</button>
    </div>
   </aside>
   <script>
@@ -181,7 +131,6 @@ echo json_encode(array_map(function($p) {
     return [
         'id' => 'product-' . $p['ProductID'],
         'name' => $p['ProductName'],
-        'description' => $p['ProductName'] . ' description here.',
         'price' => floatval($p['UnitPrice']),
         'img' => 'https://placehold.co/80x80/png?text=' . urlencode($p['ProductName']),
         'alt' => $p['ProductName'],
@@ -194,20 +143,25 @@ echo json_encode(array_map(function($p) {
    // Dynamic categories from PHP
    const categories = <?php echo json_encode($categories); ?>;
    const categoryNav = document.getElementById('category-nav');
-   categoryNav.innerHTML = categories.map((cat, idx) => `
-     <button aria-pressed="${idx === 0 ? 'true' : 'false'}"
-       class="flex items-center gap-2 ${idx === 0 ? 'bg-[#4B2E0E] text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700'} rounded-full py-2 px-5 text-sm font-semibold category-btn"
-       data-category="${cat.toLowerCase()}" type="button">
-       <i class="fas fa-coffee"></i> ${cat}
-     </button>
-   `).join('') + `<a class="text-xs text-gray-500 self-center ml-auto underline hover:text-gray-700" href="#">See more...</a>`;
+   function renderCategories() {
+     categoryNav.innerHTML = categories.map((cat, idx) => `
+       <button aria-pressed="${idx === 0 ? 'true' : 'false'}"
+         class="flex items-center gap-2
+           ${idx === 0 ? 'bg-[#4B2E0E] text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700'}
+           rounded-full py-2 px-5 text-sm font-semibold category-btn
+           ${cat.trim().toLowerCase() === 'signatures' || cat.trim().toLowerCase() === 'signature' ? 'ring-2 ring-[#c19a6b] bg-yellow-100 text-[#4B2E0E] border-yellow-400' : ''}"
+         data-category="${cat.toLowerCase()}" type="button">
+         <i class="fas fa-coffee"></i> ${cat}
+       </button>
+     `).join('');
+   }
+   renderCategories();
 
    const menuContainer = document.getElementById("menu-items");
    const orderList = document.getElementById("order-list");
    const orderTotalEl = document.getElementById("order-total");
    const confirmBtn = document.getElementById("confirm-btn");
    const cancelBtn = document.getElementById("cancel-btn");
-   const categoryButtons = document.querySelectorAll(".category-btn");
 
    let order = {};
    let currentCategory = categories.length > 0 ? categories[0].toLowerCase() : "";
@@ -234,17 +188,12 @@ echo json_encode(array_map(function($p) {
        h3.className = "font-semibold text-sm text-[#4B2E0E] mb-1 text-center";
        h3.textContent = item.name;
 
-       const pDesc = document.createElement("p");
-       pDesc.className = "text-[9px] text-gray-400 text-center mb-1 leading-[1.1]";
-       pDesc.textContent = item.description;
-
        const pPrice = document.createElement("p");
        pPrice.className = "font-semibold text-xs text-[#4B2E0E] mb-2";
        pPrice.textContent = `₱ ${item.price.toFixed(2)}`;
 
        article.appendChild(img);
        article.appendChild(h3);
-       article.appendChild(pDesc);
        article.appendChild(pPrice);
 
        if (isInOrder) {
@@ -253,12 +202,18 @@ echo json_encode(array_map(function($p) {
 
          const btnMinus = document.createElement("button");
          btnMinus.type = "button";
-         btnMinus.className = "bg-gray-300 rounded-full w-7 h-7 text-gray-600 disabled:opacity-50";
+         btnMinus.className = "bg-gray-300 rounded-full w-7 h-7 text-gray-600";
          btnMinus.textContent = "-";
          btnMinus.setAttribute("aria-label", `Decrease quantity of ${item.name}`);
-         btnMinus.disabled = quantity <= 1;
+         btnMinus.disabled = false;
          btnMinus.addEventListener("click", () => {
-           updateQuantity(item.id, quantity - 1);
+           if (quantity <= 1) {
+             delete order[item.id];
+             renderMenu();
+             renderOrder();
+           } else {
+             updateQuantity(item.id, quantity - 1);
+           }
          });
 
          const spanQty = document.createElement("span");
@@ -315,7 +270,6 @@ echo json_encode(array_map(function($p) {
 
    function renderOrder() {
      orderList.innerHTML = '<p class="font-semibold mb-1">CATEGORY</p>';
-
      const entries = Object.values(order);
      if (entries.length === 0) {
        orderTotalEl.textContent = "₱ 0.00";
@@ -323,27 +277,20 @@ echo json_encode(array_map(function($p) {
        cancelBtn.disabled = true;
        return;
      }
-
      let total = 0;
      entries.forEach(item => {
        total += item.price * item.quantity;
-
        const div = document.createElement("div");
        div.className = "flex justify-between mb-1";
-
        const spanName = document.createElement("span");
        spanName.className = "font-semibold";
        spanName.textContent = item.name;
-
        const spanPriceQty = document.createElement("span");
        spanPriceQty.innerHTML = `<span class="font-semibold">₱ ${item.price.toFixed(2)}</span><span class="ml-1">x${item.quantity}</span>`;
-
        div.appendChild(spanName);
        div.appendChild(spanPriceQty);
-
        orderList.appendChild(div);
      });
-
      orderTotalEl.innerHTML = `<span>₱</span> ${total.toFixed(2)}`;
      confirmBtn.disabled = false;
      cancelBtn.disabled = false;
@@ -355,29 +302,27 @@ echo json_encode(array_map(function($p) {
      renderOrder();
    });
 
-   // Category button click handler
-   document.querySelectorAll(".category-btn").forEach(btn => {
-     btn.addEventListener("click", () => {
-       const selectedCategory = btn.getAttribute("data-category");
-       if (selectedCategory === currentCategory) return;
-
-       currentCategory = selectedCategory;
-
-       document.querySelectorAll(".category-btn").forEach(b => {
-         if (b === btn) {
-           b.setAttribute("aria-pressed", "true");
-           b.classList.add("bg-[#4B2E0E]", "text-white", "shadow-md");
-           b.classList.remove("bg-white", "border", "border-gray-300", "text-gray-700");
-         } else {
-           b.setAttribute("aria-pressed", "false");
-           b.classList.remove("bg-[#4B2E0E]", "text-white", "shadow-md");
-           b.classList.add("bg-white", "border", "border-gray-300", "text-gray-700");
-         }
+   function attachCategoryEvents() {
+     document.querySelectorAll(".category-btn").forEach(btn => {
+       btn.addEventListener("click", () => {
+         const selectedCategory = btn.getAttribute("data-category");
+         if (selectedCategory === currentCategory) return;
+         currentCategory = selectedCategory;
+         document.querySelectorAll(".category-btn").forEach(b => {
+           if (b === btn) {
+             b.setAttribute("aria-pressed", "true");
+             b.classList.add("bg-[#4B2E0E]", "text-white", "shadow-md");
+             b.classList.remove("bg-white", "border", "border-gray-300", "text-gray-700");
+           } else {
+             b.setAttribute("aria-pressed", "false");
+             b.classList.remove("bg-[#4B2E0E]", "text-white", "shadow-md");
+             b.classList.add("bg-white", "border", "border-gray-300", "text-gray-700");
+           }
+         });
+         renderMenu();
        });
-
-       renderMenu();
      });
-   });
+   }
 
    document.getElementById("logout-btn").addEventListener("click", () => {
      Swal.fire({
@@ -395,7 +340,6 @@ echo json_encode(array_map(function($p) {
      });
    });
 
-   // --- Confirm Button: Payment Popup & Save Order ---
    confirmBtn.addEventListener("click", () => {
      Swal.fire({
        title: 'Select Payment Method',
@@ -421,21 +365,17 @@ echo json_encode(array_map(function($p) {
            quantity: item.quantity,
            price_id: item.price_id
          }));
-
          const form = document.createElement('form');
          form.method = 'POST';
          form.style.display = 'none';
-
          const inputOrder = document.createElement('input');
          inputOrder.type = 'hidden';
          inputOrder.name = 'orderData';
          inputOrder.value = JSON.stringify(orderArray);
-
          const inputPayment = document.createElement('input');
          inputPayment.type = 'hidden';
          inputPayment.name = 'paymentMethod';
          inputPayment.value = paymentMethod;
-
          form.appendChild(inputOrder);
          form.appendChild(inputPayment);
          document.body.appendChild(form);
@@ -446,6 +386,7 @@ echo json_encode(array_map(function($p) {
 
    renderMenu();
    renderOrder();
+   attachCategoryEvents();
   </script>
  </body>
-</html>
+</html> 

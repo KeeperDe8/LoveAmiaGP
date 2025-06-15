@@ -137,54 +137,59 @@ if (isset($_POST['add_product'])) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
   document.getElementById('add-product-btn').addEventListener('click', function (e) {
-    e.preventDefault();
-    Swal.fire({
-      title: 'Add Product',
-      html: `
-        <input id="swal-product-name" class="swal2-input" placeholder="Product Name">
-        <select id="swal-category" class="swal2-input">
-          <option value="">Select Category</option>
-          <option value="Coffee">Coffee</option>
-          <option value="Non Coffee">Non Coffee</option>
-          <option value="Matcha">Matcha</option>
-          <option value="Frappe">Frappe</option>
-          <option value="Signature">Signature</option>
-        </select>
-        <input id="swal-price" class="swal2-input" type="number" placeholder="Unit Price">
-        <input id="swal-createdAt" class="swal2-input" type="date" placeholder="Created At">
-        <input id="swal-effectiveFrom" class="swal2-input" type="date" placeholder="Effective From">
-        <input id="swal-effectiveTo" class="swal2-input" type="date" placeholder="Effective To">
-      `,
-      showCancelButton: true,
-      confirmButtonText: 'Add',
-      preConfirm: () => {
-        const productName = document.getElementById('swal-product-name').value.trim();
-        const category = document.getElementById('swal-category').value;
-        const price = document.getElementById('swal-price').value;
-        const createdAt = document.getElementById('swal-createdAt').value;
-        const effectiveFrom = document.getElementById('swal-effectiveFrom').value;
-        const effectiveTo = document.getElementById('swal-effectiveTo').value;
+  e.preventDefault();
 
-        if (!productName || !category || !price || !createdAt || !effectiveFrom || !effectiveTo) {
-          Swal.showValidationMessage('Please fill out all fields');
-          return false;
-        }
+  // PHP will echo the categories as a JS array
+  const categories = <?php
+    $allCategories = $con->getAllCategories();
+    echo json_encode($allCategories);
+  ?>;
 
-        document.getElementById('form-productName').value = productName;
-        document.getElementById('form-category').value = category;
-        document.getElementById('form-price').value = price;
-        document.getElementById('form-createdAt').value = createdAt;
-        document.getElementById('form-effectiveFrom').value = effectiveFrom;
-        document.getElementById('form-effectiveTo').value = effectiveTo;
+  let categoryOptions = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
 
-        return true;
+  Swal.fire({
+    title: 'Add Product',
+    html: `
+      <input id="swal-product-name" class="swal2-input" placeholder="Product Name">
+      <select id="swal-category" class="swal2-input">
+        <option value="">Select Category</option>
+        ${categoryOptions}
+      </select>
+      <input id="swal-price" class="swal2-input" type="number" placeholder="Unit Price">
+      <input id="swal-createdAt" class="swal2-input" type="date" placeholder="Created At">
+      <input id="swal-effectiveFrom" class="swal2-input" type="date" placeholder="Effective From">
+      <input id="swal-effectiveTo" class="swal2-input" type="date" placeholder="Effective To">
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Add',
+    preConfirm: () => {
+      const productName = document.getElementById('swal-product-name').value.trim();
+      const category = document.getElementById('swal-category').value;
+      const price = document.getElementById('swal-price').value;
+      const createdAt = document.getElementById('swal-createdAt').value;
+      const effectiveFrom = document.getElementById('swal-effectiveFrom').value;
+      const effectiveTo = document.getElementById('swal-effectiveTo').value;
+
+      if (!productName || !category || !price || !createdAt || !effectiveFrom || !effectiveTo) {
+        Swal.showValidationMessage('Please fill out all fields');
+        return false;
       }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        document.getElementById('add-product-form').submit();
-      }
-    });
+
+      document.getElementById('form-productName').value = productName;
+      document.getElementById('form-category').value = category;
+      document.getElementById('form-price').value = price;
+      document.getElementById('form-createdAt').value = createdAt;
+      document.getElementById('form-effectiveFrom').value = effectiveFrom;
+      document.getElementById('form-effectiveTo').value = effectiveTo;
+
+      return true;
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      document.getElementById('add-product-form').submit();
+    }
   });
+});
 
   document.getElementById('logout-btn').addEventListener('click', function(e) {
     e.preventDefault();
