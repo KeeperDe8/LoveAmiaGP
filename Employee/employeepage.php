@@ -1,12 +1,14 @@
-
-<?php 
+<?php
 session_start();
-$sweetAlertConfig = ""; 
+// Start output buffering immediately to prevent headers already sent errors
+ob_start();
+
 if (!isset($_SESSION['EmployeeID'])) {
-  header('Location: ../all/login.php');
+  header('Location: ../all/login.php'); // Correct path to login.php
+  ob_end_clean();
   exit();
 }
-require_once('../classes/database.php');
+require_once('../classes/database.php'); // Correct path to classes folder
 $con = new database();
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
@@ -22,35 +24,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
         $totalAmount += $item['price'] * $item['quantity'];
     }
 
-    $db = $con->opencon();
+    $db = $con->opencon(); // Get PDO object from database class
 
-    // 1. Insert into ordersection (UserTypeID=2 for employee)
-    $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
-    $stmt->execute([null, $employeeID, null, 2]);
-    $orderSID = $db->lastInsertId();
+    try {
+        $db->beginTransaction();
 
-    // 2. Insert into orders with the new OrderSID
-    $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
-    $stmt->execute([$totalAmount, $orderSID]);
-    $orderID = $db->lastInsertId();
+        // Get the OwnerID associated with this EmployeeID
+        $ownerID = $con->getEmployeeOwnerID($employeeID);
+        if ($ownerID === null) {
+            throw new Exception("Employee's OwnerID not found.");
+        }
 
-    // 3. Insert order details
-    foreach ($orderData as $item) {
-        $productID = intval(str_replace('product-', '', $item['id']));
-        $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
-        $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $orderID,
-            $productID,
-            $priceID,
-            $item['quantity'],
-            $item['price'] * $item['quantity']
-        ]);
+        // 1. Insert into ordersection (UserTypeID=2 for employee)
+        // Link the order to the employee's OwnerID
+        $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
+        $stmt->execute([null, $employeeID, $ownerID, 2]); // Pass ownerID
+        $orderSID = $db->lastInsertId();
+
+        // 2. Insert into orders with the new OrderSID
+        $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
+        $stmt->execute([$totalAmount, $orderSID]);
+        $orderID = $db->lastInsertId();
+
+        // 3. Insert order details
+        foreach ($orderData as $item) {
+            $productID = intval(str_replace('product-', '', $item['id']));
+            $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
+            $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $orderID,
+                $productID,
+                $priceID,
+                $item['quantity'],
+                $item['price'] * $item['quantity']
+            ]);
+        }
+
+        // 4. Generate a random reference number
+        $referenceNo = strtoupper('EMP' . uniqid() . mt_rand(1000, 9999)); // Unique ref for employee orders
+
+        // 5. Insert into payment table (status 0 for pending)
+        // Pass the same $db (PDO) object to addPaymentRecord to ensure it's part of the transaction
+        $con->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0); // PaymentStatus 0 = Pending
+
+        $db->commit();
+
+        // Redirect to a payment receipt/confirmation page (now in ../all/)
+        header("Location: ../all/order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
+        ob_end_clean(); // Discard any buffered output before redirect
+        exit;
+
+    } catch (PDOException $e) {
+        $db->rollBack();
+        error_log("Employee Order Save Error (PDO): " . $e->getMessage());
+        header("Location: employeepage.php?error=order_failed_db"); // Redirect back with an error indicator
+        ob_end_clean();
+        exit;
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("Employee Order Save Error (General): " . $e->getMessage());
+        header("Location: employeepage.php?error=order_failed_general"); // Redirect back with an error indicator
+        ob_end_clean();
+        exit;
     }
-
-    $_SESSION['last_payment_method'] = $paymentMethod;
-    header("Location: ../Employee/employesmain.php");
-    exit;
 }
 ?>
 
@@ -58,10 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
-  <title>Coffee Menu with Category Tabs and Add Item Functionality</title>
+  <title>Employee Order Page</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
    body { font-family: 'Inter', sans-serif; }
@@ -74,7 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
    <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='../Employee/employesmain.php'"><i class="fas fa-home"></i></button>
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='../Employee/employeepage.php'"><i class="fas fa-shopping-cart"></i></button>
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Transaction Records" type="button" onclick="window.location='../Employee/orderlist.php'"><i class="fas fa-list"></i></button>
+   <!-- Updated link to tranlist.php (now in ../all/) -->
+   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Transaction Records" type="button" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list"></i></button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='../Employee/productemployee.php'"><i class="fas fa-box"></i></button>
    <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='../all/setting.php'"><i class="fas fa-cog"></i></button>
    <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
@@ -86,7 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
     <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Employee Homepage</h1>
-        </form>
    </header>
 
    <!-- Category buttons -->
@@ -339,8 +375,7 @@ echo json_encode(array_map(function($p) {
        input: 'radio',
        inputOptions: {
          cash: 'Cash',
-         card: 'Card',
-         online: 'Online Bank'
+         gcash: 'GCash' // Updated from card/online to gcash
        },
        inputValidator: (value) => {
          if (!value) {
@@ -358,19 +393,23 @@ echo json_encode(array_map(function($p) {
            quantity: item.quantity,
            price_id: item.price_id
          }));
+         
          const form = document.createElement('form');
          form.method = 'POST';
          form.style.display = 'none';
+
          const inputOrder = document.createElement('input');
          inputOrder.type = 'hidden';
          inputOrder.name = 'orderData';
          inputOrder.value = JSON.stringify(orderArray);
+         form.appendChild(inputOrder);
+
          const inputPayment = document.createElement('input');
          inputPayment.type = 'hidden';
          inputPayment.name = 'paymentMethod';
          inputPayment.value = paymentMethod;
-         form.appendChild(inputOrder);
          form.appendChild(inputPayment);
+
          document.body.appendChild(form);
          form.submit();
        }

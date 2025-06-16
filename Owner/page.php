@@ -8,7 +8,7 @@ if (!isset($_SESSION['OwnerID'])) {
   ob_end_clean(); // Discard any buffered output before redirect
   exit();
 }
-require_once('../classes/database.php'); // Corrected path to classes folder
+require_once('../classes/database.php'); // Correct path to classes folder
 $con = new database();
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
         $totalAmount += $item['price'] * $item['quantity'];
     }
 
-    $db = $con->opencon(); // Get PDO object from database class - THIS IS THE CONNECTION TO USE
+    $db = $con->opencon(); // Get PDO object from database class
 
     try {
         $db->beginTransaction();
@@ -57,21 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
         $referenceNo = strtoupper('LA' . uniqid() . mt_rand(1000, 9999)); // Example: LA60c7f7b3c2d4e1234
 
         // 5. Insert into payment table (status 0 for pending)
-        // *** CHANGE HERE: Pass the $db object to addPaymentRecord ***
         $con->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0); // PaymentStatus 0 = Pending
 
         $db->commit();
 
-        // Redirect to a payment receipt/confirmation page
-        // Ensure order_receipt.php is in the same directory as this file (Owner folder)
-        header("Location: order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
+        // Redirect to order_receipt.php (now in ../all/)
+        header("Location: ../all/order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
         ob_end_clean(); // Discard any buffered output before redirect
         exit;
 
     } catch (PDOException $e) {
         $db->rollBack();
         error_log("Order Save Error: " . $e->getMessage()); // Log error for debugging
-        // For production, avoid exposing detailed error messages to the user
         header("Location: page.php?error=order_failed"); // Redirect back to this page with an error indicator
         ob_end_clean();
         exit;
@@ -99,8 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
    <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='mainpage.php'"><i class="fas fa-home"></i></button>
    <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='page.php'"><i class="fas fa-shopping-cart"></i></button>
-   <!-- Updated link to tranlist.php -->
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='tranlist.php'"><i class="fas fa-list"></i></button>
+   <!-- Updated link to tranlist.php (now in ../all/) -->
+   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list"></i></button>
    <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='product.php'"><i class="fas fa-box"></i></button>
    <button aria-label="Users" class="text-[#4B2E0E] text-xl" title="Users" type="button" onclick="window.location='user.php'"><i class="fas fa-users"></i></button>
    <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='../all/setting.php'"><i class="fas fa-cog"></i></button>
@@ -113,7 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
     <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
-    <!-- Removed incorrectly placed </form> tag (it was from your previous code) -->
    </header>
 
    <!-- Category buttons -->
@@ -366,7 +362,7 @@ echo json_encode(array_map(function($p) {
        input: 'radio',
        inputOptions: {
          cash: 'Cash',
-         gcash: 'GCash' // Changed from card/online to gcash
+         gcash: 'GCash'
        },
        inputValidator: (value) => {
          if (!value) {
@@ -385,10 +381,9 @@ echo json_encode(array_map(function($p) {
            price_id: item.price_id
          }));
          
-         // Dynamically create a form and submit it to trigger the PHP logic
          const form = document.createElement('form');
          form.method = 'POST';
-         form.style.display = 'none'; // Hide the form
+         form.style.display = 'none';
 
          const inputOrder = document.createElement('input');
          inputOrder.type = 'hidden';
@@ -402,8 +397,8 @@ echo json_encode(array_map(function($p) {
          inputPayment.value = paymentMethod;
          form.appendChild(inputPayment);
 
-         document.body.appendChild(form); // Append to body to submit
-         form.submit(); // This will trigger the PHP logic and subsequent redirect
+         document.body.appendChild(form);
+         form.submit();
        }
      });
    });

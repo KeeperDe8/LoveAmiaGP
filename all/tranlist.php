@@ -1,18 +1,28 @@
 <?php
 session_start();
-if (!isset($_SESSION['OwnerID'])) {
-  // Assuming login.php is directly in the parent directory of this file if in Owner/
-  header('Location: ../all/login.php'); // Consistent path to login.php
-  exit();
+
+$loggedInUserType = null;
+$loggedInID = null;
+
+// Determine if Owner or Employee is logged in
+if (isset($_SESSION['OwnerID'])) {
+    $loggedInUserType = 'owner';
+    $loggedInID = $_SESSION['OwnerID'];
+} elseif (isset($_SESSION['EmployeeID'])) {
+    $loggedInUserType = 'employee';
+    $loggedInID = $_SESSION['EmployeeID'];
+} else {
+    // Neither owner nor employee is logged in, redirect to login
+    header('Location: login.php'); // login.php is in the same 'all' folder
+    exit();
 }
-require_once('../classes/database.php'); // Adjust path to your database class
+
+require_once('../classes/database.php'); // Path from 'all/' to 'classes/'
 $con = new database();
 
-// Get the OwnerID from the session
-$ownerID = $_SESSION['OwnerID'];
-
-// Fetch all orders associated with this owner's business using the database function
-$allOrders = $con->getAllOrdersForOwnerView($ownerID);
+// Fetch all orders associated with this owner's business or this employee
+// Uses the combined function from database.php
+$allOrders = $con->getOrdersForOwnerOrEmployee($loggedInID, $loggedInUserType);
 
 $customerAccountOrders = [];
 $walkinStaffOrders = [];
@@ -20,12 +30,10 @@ $walkinStaffOrders = [];
 // Categorize orders based on UserTypeID and presence of CustomerUsername
 foreach ($allOrders as $order) {
     if ($order['UserTypeID'] == 3 && !empty($order['CustomerUsername'])) {
-        // Registered customer order (UserTypeID 3 is typically for Customer)
-        $customerAccountOrders[] = $order;
-    } else {
-        // Walk-in/Staff-assisted order (UserTypeID 1 for owner, 2 for employee, or null customer)
-        $walkinStaffOrders[] = $order;
-    }
+    $customerAccountOrders[] = $order;
+} else {
+    $walkinStaffOrders[] = $order;
+}
 }
 ?>
 <!DOCTYPE html>
@@ -39,15 +47,15 @@ foreach ($allOrders as $order) {
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body { font-family: 'Inter', sans-serif; }
-    /* You might want to adjust the background image path */
-    /* If 'images' is in the root, and this file is in 'Owner/', path might be '../images/LAbg.png' */
-    body { background: url('images/LAbg.png') no-repeat center center/cover; }
+    /* Adjust background image path relative to the new location of tranlist.php */
+    /* If 'images' is in the LoveAmaiah/ root, path from 'all/' would be '../images/LAbg.png' */
+    body { background: url('../images/LAbg.png') no-repeat center center/cover; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
   <div class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-8 shadow-lg max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
     
-    <!-- Customer Account Orders Box -->
+    <!-- Customer Account Orders Box (Left Column on md screens and up) -->
     <div>
       <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
         <i class="fas fa-user-check"></i> Customer Account Orders
@@ -81,7 +89,7 @@ foreach ($allOrders as $order) {
       <?php endif; ?>
     </div>
 
-    <!-- Walk-in/Staff-Assisted Orders Box -->
+    <!-- Walk-in/Staff-Assisted Orders Box (Right Column on md screens and up) -->
     <div>
       <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
         <i class="fas fa-walking"></i> Walk-in/Staff-Assisted Orders
@@ -96,12 +104,13 @@ foreach ($allOrders as $order) {
                 <p class="text-xs text-gray-600 mb-2">
                     Placed by: 
                     <?php
+                        // Display who placed the order based on UserTypeID
                         if ($order['UserTypeID'] == 1 && !empty($order['OwnerFirstName'])) {
                             echo htmlspecialchars($order['OwnerFirstName'] . ' ' . $order['OwnerLastName']) . ' (Owner)';
                         } elseif ($order['UserTypeID'] == 2 && !empty($order['EmployeeFirstName'])) {
                             echo htmlspecialchars($order['EmployeeFirstName'] . ' ' . $order['EmployeeLastName']) . ' (Employee)';
                         } else {
-                            echo 'Guest/Unknown';
+                            echo 'Guest/Unknown'; // Should ideally not happen if UserTypeID is correctly set
                         }
                     ?><br>
                     Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($order['OrderDate']))) ?>
@@ -127,7 +136,7 @@ foreach ($allOrders as $order) {
   </div>
   
   <div class="mt-6 flex justify-center w-full max-w-4xl">
-      <a href="mainpage.php" class="bg-[#4B2E0E] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6b3e14] transition shadow-md">Back to Main Menu</a>
+      <a href="../Owner/mainpage.php" class="bg-[#4B2E0E] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6b3e14] transition shadow-md">Back to Main Menu</a>
   </div>
 </body>
 </html>

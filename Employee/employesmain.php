@@ -41,6 +41,7 @@
       <button aria-label="Order" class="text-[#4B2E0E] text-xl" title="Order" onclick="window.location='../Employee/employeepage.php'">
         <i class="fas fa-shopping-cart"></i>
       </button>
+      <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Transaction Records" type="button" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list"></i></button>
       <button aria-label="Product" class="text-[#4B2E0E] text-xl" title="Product" onclick="window.location='../Employee/productemployee.php'">
         <i class="fas fa-box"></i>
       </button>

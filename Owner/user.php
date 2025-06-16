@@ -103,8 +103,8 @@ if (isset($_POST['add_employee'])) {
           <th class="py-2 px-3">#</th>
           <th class="py-2 px-3">Name</th>
           <th class="py-2 px-3">Role</th>
-          <th class="py-2 px-3">Phone</th>
           <th class="py-2 px-3">Email</th>
+          <th class="py-2 px-3">Phone</th>
           <th class="py-2 px-3">Username</th>
           <th class="py-2 px-3 text-center">Actions</th> <!-- Added text-center for the header too -->
         </tr>

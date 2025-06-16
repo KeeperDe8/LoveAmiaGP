@@ -241,27 +241,27 @@ function loginEmployee($username, $password) {
     }
 
 
+    // Function to add a payment record (now accepts PDO object)
       function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 0): bool {
-    try {
         // Use the provided PDO object ($pdo) instead of opening a new connection
-        $stmt = $pdo->prepare("INSERT INTO payment (OrderID, PaymentMethod, PaymentAmount, PaymentStatus, ReferenceNo) VALUES (?, ?, ?, ?, ?)");
-        
-        // You can keep this error_log line for debugging if you wish, remove for production
-        error_log("addPaymentRecord parameters: OrderID={$orderID}, Method={$paymentMethod}, Amount={$paymentAmount}, RefNo={$referenceNo}, Status={$paymentStatus}");
-        
-        return $stmt->execute([$orderID, $paymentMethod, $paymentAmount, $paymentStatus, $referenceNo]);
-    } catch (PDOException $e) {
-        error_log("AddPaymentRecord Error: " . $e->getMessage());
-        // No need to echo/die here now, as it's part of a larger transaction block that handles exceptions.
-        return false;
+        try {
+            $stmt = $pdo->prepare("INSERT INTO payment (OrderID, PaymentMethod, PaymentAmount, PaymentStatus, ReferenceNo) VALUES (?, ?, ?, ?, ?)");
+            // Add a temporary logging line to verify parameters are correct just before execution
+            error_log("addPaymentRecord parameters: OrderID={$orderID}, Method={$paymentMethod}, Amount={$paymentAmount}, RefNo={$referenceNo}, Status={$paymentStatus}");
+            
+            return $stmt->execute([$orderID, $paymentMethod, $paymentAmount, $paymentStatus, $referenceNo]);
+        } catch (PDOException $e) {
+            error_log("AddPaymentRecord Error: " . $e->getMessage());
+            // No need to echo/die here now, as it's part of a larger transaction block that handles exceptions.
+            return false;
+        }
     }
-}
 
-    // Function to get full order details for a receipt
+    // Function to get full order details for a receipt (modified for access control)
     function getFullOrderDetails($orderID, $referenceNo) {
         $con = $this->opencon();
         
-        // Fetch order header and payment details
+        // Fetch order header and payment details, including UserTypeID, CustomerID, EmployeeID, OwnerID from ordersection
         $stmt = $con->prepare("
             SELECT
                 o.OrderID,
@@ -305,41 +305,114 @@ function loginEmployee($username, $password) {
     }
 
 
-     function getAllOrdersForOwnerView($ownerID) {
+    // Function to get the OwnerID for a given EmployeeID
+    function getEmployeeOwnerID($employeeID) {
         $con = $this->opencon();
-        // This query fetches orders related to the owner's business.
-        // It joins necessary tables to get customer username, employee/owner names,
-        // payment details, and a concatenated list of items in the order.
+        $stmt = $con->prepare("SELECT OwnerID FROM employee WHERE EmployeeID = ?");
+        $stmt->execute([$employeeID]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['OwnerID'] ?? null;
+    }
+
+    // Function to get the ID of any (e.g., first) owner. Useful if all customer orders belong to one business.
+    // ADDED DEBUG LOGGING HERE
+    function getAnyOwnerId() {
+        $con = $this->opencon();
+        try {
+            $stmt = $con->prepare("SELECT OwnerID FROM owner LIMIT 1");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $ownerId = $result['OwnerID'] ?? null;
+            error_log("DEBUG: getAnyOwnerId() fetched OwnerID: " . ($ownerId ?? 'NULL')); // ADDED LOG
+            return $ownerId;
+        } catch (PDOException $e) {
+            error_log("ERROR: getAnyOwnerId() failed: " . $e->getMessage()); // ADDED LOG
+            return null;
+        }
+    }
+
+
+    // Function to get orders for owner OR employee (modified for access control)
+    function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
+    $con = $this->opencon();
+
+    $sql = "
+        SELECT
+            o.OrderID,
+            o.OrderDate,
+            o.TotalAmount,
+            os.UserTypeID,
+            c.C_Username AS CustomerUsername,
+            e.EmployeeFN AS EmployeeFirstName,
+            e.EmployeeLN AS EmployeeLastName,
+            ow.OwnerFN AS OwnerFirstName,
+            ow.OwnerLN AS OwnerLastName,
+            p.PaymentMethod,
+            p.ReferenceNo,
+            GROUP_CONCAT(
+                CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
+                ORDER BY od.OrderDetailID SEPARATOR '; '
+            ) AS OrderItems
+        FROM orders o
+        JOIN ordersection os ON o.OrderSID = os.OrderSID
+        LEFT JOIN customer c ON os.CustomerID = c.CustomerID
+        LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
+        LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
+        LEFT JOIN payment p ON o.OrderID = p.OrderID
+        LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
+        LEFT JOIN product prod ON od.ProductID = prod.ProductID
+    ";
+
+    $params = [];
+
+    if ($userType === 'owner') {
+        $sql .= " WHERE os.OwnerID = ?";
+        $params[] = $loggedInID;
+    } elseif ($userType === 'employee') {
+        $ownerID = $this->getEmployeeOwnerID($loggedInID);
+        if ($ownerID === null) {
+            return [];
+        }
+        $sql .= " WHERE (os.EmployeeID = ? OR os.OwnerID = ? OR (os.CustomerID IS NOT NULL AND os.OwnerID = ?))";
+        $params[] = $loggedInID;
+        $params[] = $ownerID;
+        $params[] = $ownerID;
+    } else {
+        return [];
+    }
+
+    $sql .= " GROUP BY o.OrderID ORDER BY o.OrderDate DESC";
+
+    $stmt = $con->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+    // Function to get orders specifically for a customer (already added previously)
+    // No changes needed here, just for context
+    function getOrdersForCustomer($customerID) {
+        $con = $this->opencon();
         $stmt = $con->prepare("
             SELECT
                 o.OrderID,
                 o.OrderDate,
                 o.TotalAmount,
-                os.UserTypeID,
-                c.C_Username AS CustomerUsername,
-                e.EmployeeFN AS EmployeeFirstName,
-                e.EmployeeLN AS EmployeeLastName,
-                ow.OwnerFN AS OwnerFirstName,
-                ow.OwnerLN AS OwnerLastName,
                 p.PaymentMethod,
                 p.ReferenceNo,
-                              GROUP_CONCAT(
-                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')') -- REMOVED od.FORMAT
+                GROUP_CONCAT(
+                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
                     ORDER BY od.OrderDetailID SEPARATOR '; '
                 ) AS OrderItems
             FROM orders o
             JOIN ordersection os ON o.OrderSID = os.OrderSID
-            LEFT JOIN customer c ON os.CustomerID = c.CustomerID
-            LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
-            LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
             LEFT JOIN payment p ON o.OrderID = p.OrderID
             LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
             LEFT JOIN product prod ON od.ProductID = prod.ProductID
-            WHERE os.OwnerID = ?
-            GROUP BY o.OrderID -- Group by OrderID to prevent duplicate rows due to GROUP_CONCAT
+            WHERE os.CustomerID = ?
+            GROUP BY o.OrderID
             ORDER BY o.OrderDate DESC
         ");
-        $stmt->execute([$ownerID]);
+        $stmt->execute([$customerID]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
