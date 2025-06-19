@@ -1,16 +1,14 @@
 <?php
-// update_product.php - TEMPORARY DEBUGGING VERSION
 
-// Start output buffering immediately to capture any stray output
 ob_start();
 
 session_start();
 
-// Temporarily turn on error reporting to see all issues
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Ensure only authenticated owners can update products
+
 if (!isset($_SESSION['OwnerID'])) {
     error_log("Unauthorized access attempt to update_product.php. Session: " . print_r($_SESSION, true));
     http_response_code(403); // Forbidden
@@ -19,33 +17,33 @@ if (!isset($_SESSION['OwnerID'])) {
     exit();
 }
 
-require_once('../classes/database.php'); // Adjust path based on your folder structure
+require_once('../classes/database.php');
 $con = new database();
 
-// Log the raw incoming POST data to your PHP error log
+
 error_log("Incoming RAW POST data to update_product.php: " . print_r($_POST, true));
 
-header('Content-Type: application/json'); // Set header for JSON response
+header('Content-Type: application/json'); 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $priceID_raw = $_POST['priceID'] ?? '';
     $unitPrice_raw = $_POST['unitPrice'] ?? '';
     $effectiveFrom_raw = $_POST['effectiveFrom'] ?? '';
-    $effectiveTo_raw = $_POST['effectiveTo'] ?? ''; // Can be empty or null
+    $effectiveTo_raw = $_POST['effectiveTo'] ?? ''; 
 
-    // Apply filters
+
     $priceID = filter_var($priceID_raw, FILTER_SANITIZE_NUMBER_INT);
     $unitPrice = filter_var($unitPrice_raw, FILTER_VALIDATE_FLOAT);
 
-    // Log filtered values to your PHP error log
+    
     error_log("Filtered values: priceID='{$priceID}', unitPrice='{$unitPrice}', effectiveFrom='{$effectiveFrom_raw}'");
 
-    // Basic validation check to find the culprit
+   
     $validationMessages = [];
-    if (empty($priceID) || $priceID === false || $priceID <= 0) { // Check for valid integer ID
+    if (empty($priceID) || $priceID === false || $priceID <= 0) { 
         $validationMessages[] = 'PriceID is invalid or missing.';
     }
-    if ($unitPrice === false || $unitPrice < 0) { // Check for valid float price, allow 0
+    if ($unitPrice === false || $unitPrice < 0) { 
         $validationMessages[] = 'UnitPrice is invalid.';
     }
     if (empty($effectiveFrom_raw)) {
@@ -53,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!empty($validationMessages)) {
-        // Log the specific validation failure
+       
         error_log("Validation failed in update_product.php: " . implode(" ", $validationMessages));
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid or missing data for update. Details: ' . implode(" ", $validationMessages)]);
@@ -61,8 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
-    // Call the database function to update
-    // Use raw_values for database to avoid issues with filter_var on date strings
+   
     $result = $con->updateProductPrice($priceID, $unitPrice, $effectiveFrom_raw, $effectiveTo_raw);
 
     if ($result) {
@@ -76,5 +73,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
 }
 
-ob_end_flush(); // Flush the buffer
-?>
+ob_end_flush(); 

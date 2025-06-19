@@ -42,7 +42,6 @@ $ownerName = $_SESSION['OwnerFN'];
   <button title="Orders" onclick="window.location='../Owner/page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
   <button title="Order List" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list text-xl"></i></button>
   <button title="Inventory" onclick="window.location='../Owner/product.php'"><i class="fas fa-box text-xl"></i></button>
-  <button title="Reports" onclick="window.location='../Owner/chart.php'"><i class="fas fa-chart-bar text-xl"></i></button>
   <button title="Users" onclick="window.location='../Owner/user.php'"><i class="fas fa-users text-xl"></i></button>
   <button title="Settings" onclick="window.location='../all/setting.php'"><i class="fas fa-cog text-xl"></i></button>
   <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl"></i></button>

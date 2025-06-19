@@ -6,15 +6,15 @@ if (!isset($_SESSION['OwnerID'])) {
   exit();
 }
  
-require_once('../classes/database.php'); // CORRECTED PATH: Assumes 'classes' is one level up
+require_once('../classes/database.php'); 
 $con = new database();
 $sweetAlertConfig = "";
  
-// Debugging (Keep these for now, remove in production)
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
  
-// Add employee
+
 if (isset($_POST['add_employee'])) {
   $owerID = $_SESSION['OwnerID'];
   $firstF = $_POST['firstF'];
@@ -103,8 +103,8 @@ if (isset($_POST['add_employee'])) {
           <th class="py-2 px-3">#</th>
           <th class="py-2 px-3">Name</th>
           <th class="py-2 px-3">Role</th>
-          <th class="py-2 px-3">Email</th>
           <th class="py-2 px-3">Phone</th>
+          <th class="py-2 px-3">Email</th>
           <th class="py-2 px-3">Username</th>
           <th class="py-2 px-3 text-center">Actions</th> <!-- Added text-center for the header too -->
         </tr>
@@ -150,12 +150,12 @@ if (isset($_POST['add_employee'])) {
 </main>
  
 <script>
-// Validation functions
+
 const isNotEmpty = (value) => value.trim() !== '';
 const isPasswordValid = (value) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/.test(value);
 const isPhoneValid = (value) => /^09\d{9}$/.test(value);
  
-// Helper for field state
+
 function setSwalFieldState(field, isValid, message) {
   if (isValid) {
     field.classList.remove('is-invalid');
@@ -170,7 +170,7 @@ function setSwalFieldState(field, isValid, message) {
   }
 }
  
-// Real-time email check
+
 function checkEmployeeEmailAvailability(emailField, confirmBtn) {
   emailField.addEventListener('input', () => {
     const email = emailField.value.trim();
@@ -179,7 +179,7 @@ function checkEmployeeEmailAvailability(emailField, confirmBtn) {
       confirmBtn.disabled = true;
       return;
     }
-    // Assumes ajax folder is sibling to Owner folder
+  
     fetch('../ajax/check_employeemail.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -202,7 +202,7 @@ function checkEmployeeEmailAvailability(emailField, confirmBtn) {
   });
 }
  
-// Real-time username check
+
 function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
   usernameField.addEventListener('input', () => {
     const username = usernameField.value.trim();
@@ -213,7 +213,7 @@ function checkEmployeeUsernameAvailability(usernameField, confirmBtn) {
       confirmBtn.disabled = true;
       return;
     }
-    // Assumes ajax folder is sibling to Owner folder
+  
     fetch('../ajax/check_employename.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -284,7 +284,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
         Swal.showValidationMessage('Password must have at least 6 characters, 1 uppercase, 1 number, and 1 special character');
         return false;
       }
-      // Check if username/email/phone/password fields are marked invalid (real-time validation)
+   
       if (
         document.getElementById('swal-emp-email').classList.contains('is-invalid') ||
         document.getElementById('swal-emp-username').classList.contains('is-invalid') ||
@@ -312,7 +312,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       const passwordField = document.getElementById('swal-emp-password');
       const confirmBtn = document.querySelector('.swal2-confirm');
  
-      // Add feedback spans if not present for new fields
+     
       if (!emailField.nextElementSibling || !emailField.nextElementSibling.classList.contains('swal-feedback')) {
         const span = document.createElement('span');
         span.className = 'swal-feedback';
@@ -323,7 +323,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
         span.className = 'swal-feedback';
         usernameField.parentNode.insertBefore(span, usernameField.nextSibling);
       }
-      // Ensure feedback spans are present for phone and password fields too
+    
       if (!phoneField.nextElementSibling || !phoneField.nextElementSibling.classList.contains('swal-feedback')) {
         const span = document.createElement('span');
         span.className = 'swal-feedback';
@@ -339,7 +339,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       checkEmployeeEmailAvailability(emailField, confirmBtn);
       checkEmployeeUsernameAvailability(usernameField, confirmBtn);
  
-      // Real-time phone validation
+    
       phoneField.addEventListener('input', () => {
         const value = phoneField.value.trim();
         const feedbackSpan = phoneField.nextElementSibling && phoneField.nextElementSibling.classList.contains('swal-feedback') ? phoneField.nextElementSibling : null;
@@ -361,7 +361,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
         }
       });
  
-      // Real-time password validation
+    
       passwordField.addEventListener('input', () => {
         const value = passwordField.value.trim();
         const feedbackSpan = passwordField.nextElementSibling && passwordField.nextElementSibling.classList.contains('swal-feedback') ? passwordField.nextElementSibling : null;
@@ -390,7 +390,7 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
   });
 });
  
-// JavaScript for Delete Button
+
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.delete-employee-btn').forEach(button => {
     button.addEventListener('click', function(e) {
@@ -410,24 +410,24 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          // Send AJAX request to delete the employee
+          
           const formData = new FormData();
           formData.append('employee_id', employeeId);
 
-          fetch('delete_employee.php', { // Path to the delete script in the same directory
+          fetch('delete_employee.php', { 
             method: 'POST',
             body: formData
           })
           .then(response => {
-            // Check if the response is OK before trying to parse as JSON
+            
             if (!response.ok) {
-                // If response is not OK (e.g., 403, 400, 500), try to get text to debug
-                return response.text().then(text => { // Get raw text to see PHP errors/warnings
+                
+                return response.text().then(text => { 
                     console.error('Server response was not OK:', text);
                     throw new Error(`Server returned status ${response.status}. Check console for details. Raw response: ${text.substring(0, 100)}...`);
                 });
             }
-            return response.json(); // Attempt to parse as JSON only if response is OK
+            return response.json();
           })
           .then(data => {
             if (data.success) {
@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `${employeeName} has been deleted.`,
                 'success'
               ).then(() => {
-                // Remove the row from the table upon successful deletion
+                
                 this.closest('tr').remove();
               });
             } else {

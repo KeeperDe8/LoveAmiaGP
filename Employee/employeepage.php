@@ -8,88 +8,52 @@ if (!isset($_SESSION['EmployeeID'])) {
   ob_end_clean();
   exit();
 }
+
 require_once('../classes/database.php'); // Correct path to classes folder
 $con = new database();
-$products = $con->getAllProductsWithPrice();
-$categories = $con->getAllCategories();
+
 
 // --- ORDER SAVE LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
+    
+    // It's good practice to double-check the session here in case it expired
+    if (!isset($_SESSION['EmployeeID'])) {
+        // Redirect to login if session is lost during a POST request
+        header('Location: ../all/login.php?error=session_expired');
+        ob_end_clean();
+        exit();
+    }
+    
     $orderData = json_decode($_POST['orderData'], true);
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
     $employeeID = $_SESSION['EmployeeID'];
-    $totalAmount = 0;
 
-    foreach ($orderData as $item) {
-        $totalAmount += $item['price'] * $item['quantity'];
-    }
+    // Call the unified processOrder method, specifying the user type as 'employee'
+    $result = $con->processOrder($orderData, $paymentMethod, $employeeID, 'employee');
 
-    $db = $con->opencon(); // Get PDO object from database class
-
-    try {
-        $db->beginTransaction();
-
-        // Get the OwnerID associated with this EmployeeID
-        $ownerID = $con->getEmployeeOwnerID($employeeID);
-        if ($ownerID === null) {
-            throw new Exception("Employee's OwnerID not found.");
-        }
-
-        // 1. Insert into ordersection (UserTypeID=2 for employee)
-        // Link the order to the employee's OwnerID
-        $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
-        $stmt->execute([null, $employeeID, $ownerID, 2]); // Pass ownerID
-        $orderSID = $db->lastInsertId();
-
-        // 2. Insert into orders with the new OrderSID
-        $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
-        $stmt->execute([$totalAmount, $orderSID]);
-        $orderID = $db->lastInsertId();
-
-        // 3. Insert order details
-        foreach ($orderData as $item) {
-            $productID = intval(str_replace('product-', '', $item['id']));
-            $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
-            $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $orderID,
-                $productID,
-                $priceID,
-                $item['quantity'],
-                $item['price'] * $item['quantity']
-            ]);
-        }
-
-        // 4. Generate a random reference number
-        $referenceNo = strtoupper('EMP' . uniqid() . mt_rand(1000, 9999)); // Unique ref for employee orders
-
-        // 5. Insert into payment table (status 0 for pending)
-        // Pass the same $db (PDO) object to addPaymentRecord to ensure it's part of the transaction
-        $con->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0); // PaymentStatus 0 = Pending
-
-        $db->commit();
-
-        // Redirect to a payment receipt/confirmation page (now in ../all/)
-        header("Location: ../all/order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
-        ob_end_clean(); // Discard any buffered output before redirect
-        exit;
-
-    } catch (PDOException $e) {
-        $db->rollBack();
-        error_log("Employee Order Save Error (PDO): " . $e->getMessage());
-        header("Location: employeepage.php?error=order_failed_db"); // Redirect back with an error indicator
+    // Handle the result from the processOrder method
+    if ($result['success']) {
+        // On success, redirect to the receipt page with the new order details
+        $redirectUrl = "../all/order_receipt.php?order_id={$result['order_id']}&ref_no={$result['ref_no']}";
+        header("Location: " . $redirectUrl);
         ob_end_clean();
         exit;
-    } catch (Exception $e) {
-        $db->rollBack();
-        error_log("Employee Order Save Error (General): " . $e->getMessage());
-        header("Location: employeepage.php?error=order_failed_general"); // Redirect back with an error indicator
+    } else {
+        // On failure, log the specific error and redirect back with a generic error message
+        error_log("Employee Order Save Failed: " . $result['message']);
+        header("Location: employeepage.php?error=order_failed"); 
         ob_end_clean();
         exit;
     }
 }
+
+// This part runs for the initial page load (GET request)
+$products = $con->getAllProductsWithPrice();
+$categories = $con->getAllCategories();
+
 ?>
 
+<!DOCTYPE html>
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -375,7 +339,7 @@ echo json_encode(array_map(function($p) {
        input: 'radio',
        inputOptions: {
          cash: 'Cash',
-         gcash: 'GCash' // Updated from card/online to gcash
+         gcash: 'GCash' // Updated payment options
        },
        inputValidator: (value) => {
          if (!value) {

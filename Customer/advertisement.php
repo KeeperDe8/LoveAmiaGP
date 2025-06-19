@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION['CustomerID'])) {
-  header('Location: login.php');
+  header('Location: ../all/login.php');
   exit();
 }
 $customer = $_SESSION['CustomerFN'];

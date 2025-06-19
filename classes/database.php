@@ -1,106 +1,307 @@
 <?php
 
-
 class database {
 
     function opencon() {
         return new PDO(
             'mysql:host=localhost;
-            dbname=amaihatest', // VERIFY THIS DATABASE NAME IS CORRECT!
+            dbname=amaihatest', 
             username: 'root',
             password: ''
         );
     }
 
-    // Register function
+    public function processOrder($orderData, $paymentMethod, $userID, $userType) {
+        $db = $this->opencon();
+        $ownerID = null;
+        $employeeID = null;
+        $customerID = null;
+        $userTypeID = null;
+        $referencePrefix = 'ORD';
+
+        switch ($userType) {
+            case 'owner':
+                $ownerID = $userID;
+                $userTypeID = 1;
+                $referencePrefix = 'LA';
+                break;
+            case 'employee':
+                $employeeID = $userID;
+                $ownerID = $this->getEmployeeOwnerID($employeeID);
+                if ($ownerID === null) {
+                    return ['success' => false, 'message' => "Order failed: Could not find owner for this employee."];
+                }
+                $userTypeID = 2;
+                $referencePrefix = 'EMP';
+                break;
+            case 'customer':
+                $customerID = $userID;
+                $ownerID = $this->getAnyOwnerId(); 
+                if ($ownerID === null) {
+                    return ['success' => false, 'message' => "Order failed: No owner account available."];
+                }
+                $userTypeID = 3;
+                $referencePrefix = 'CUST';
+                break;
+            default:
+                return ['success' => false, 'message' => "Invalid user type."];
+        }
+
+        $totalAmount = 0;
+        foreach ($orderData as $item) {
+            $totalAmount += $item['price'] * $item['quantity'];
+        }
+
+        try {
+            $db->beginTransaction();
+            $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$customerID, $employeeID, $ownerID, $userTypeID]);
+            $orderSID = $db->lastInsertId();
+
+            $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
+            $stmt->execute([$totalAmount, $orderSID]);
+            $orderID = $db->lastInsertId();
+
+            foreach ($orderData as $item) {
+                $productID = intval(str_replace('product-', '', $item['id']));
+                $priceID = isset($item['price_id']) ? $item['price_id'] : null;
+                if ($priceID === null) throw new Exception("Price ID is missing for one or more items.");
+                $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$orderID, $productID, $priceID, $item['quantity'], $item['price'] * $item['quantity']]);
+            }
+
+            $referenceNo = strtoupper($referencePrefix . uniqid() . mt_rand(1000, 9999));
+            $this->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0);
+
+            $db->commit();
+            return ['success' => true, 'message' => 'Transaction successful!', 'order_id' => $orderID, 'ref_no' => $referenceNo];
+
+        } catch (PDOException $e) {
+            $db->rollBack();
+            error_log("Order Save Error (PDO): " . $e->getMessage());
+            return ['success' => false, 'message' => 'Database error during order processing. Check server logs.'];
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Order Save Error (General): " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+    
+    public function getUserData($userID, $userType) {
+        $con = $this->opencon();
+        $sql = '';
+        $fieldMap = [];
+
+        switch ($userType) {
+            case 'customer':
+                $sql = "SELECT * FROM customer WHERE CustomerID = ?";
+                $fieldMap = [
+                    'username' => 'C_Username', 'name' => 'CustomerFN', 'email' => 'C_Email', 'phone' => 'C_PhoneNumber'
+                ];
+                break;
+            case 'employee':
+                $sql = "SELECT * FROM employee WHERE EmployeeID = ?";
+                 $fieldMap = [
+                    'username' => 'E_Username', 'name' => 'EmployeeFN', 'email' => 'E_Email', 'phone' => 'E_PhoneNumber'
+                ];
+                break;
+            case 'owner':
+                $sql = "SELECT * FROM owner WHERE OwnerID = ?";
+                 $fieldMap = [
+                    'username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber'
+                ];
+                break;
+            default:
+                return []; // Return empty if user type is invalid
+        }
+
+        $stmt = $con->prepare($sql);
+        $stmt->execute([$userID]);
+        $dbData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$dbData) {
+            return [];
+        }
+
+        // Standardize the output array keys
+        $standardizedData = [];
+        foreach ($fieldMap as $standardKey => $dbKey) {
+            $standardizedData[$standardKey] = $dbData[$dbKey] ?? '';
+        }
+
+        return $standardizedData;
+    }
+
+    public function updateUserData($userID, $userType, $data) {
+        $con = $this->opencon();
+        $table = '';
+        $idColumn = '';
+        $fieldMap = [];
+
+        switch ($userType) {
+            case 'customer':
+                $table = 'customer';
+                $idColumn = 'CustomerID';
+                $fieldMap = ['username' => 'C_Username', 'name' => 'CustomerFN', 'email' => 'C_Email', 'phone' => 'C_PhoneNumber', 'password' => 'C_Password'];
+                break;
+            case 'employee':
+                $table = 'employee';
+                $idColumn = 'EmployeeID';
+                $fieldMap = ['username' => 'E_Username', 'name' => 'EmployeeFN', 'email' => 'E_Email', 'phone' => 'E_PhoneNumber', 'password' => 'E_Password'];
+                break;
+            case 'owner':
+                $table = 'owner';
+                $idColumn = 'OwnerID';
+                $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'O_Password'];
+                break;
+            default:
+                return false;
+        }
+
+        $sqlParts = [];
+        $params = [];
+
+        $map = ['username', 'name', 'email', 'phone'];
+        foreach($map as $key) {
+            if (isset($data[$key])) {
+                $sqlParts[] = "`{$fieldMap[$key]}` = ?";
+                $params[] = $data[$key];
+            }
+        }
+        
+        if (!empty($data['password'])) {
+            $sqlParts[] = "`{$fieldMap['password']}` = ?";
+            $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
+        }
+
+        if (empty($sqlParts)) {
+            return false;
+        }
+
+        $sql = "UPDATE `{$table}` SET " . implode(', ', $sqlParts) . " WHERE `{$idColumn}` = ?";
+        $params[] = $userID;
+
+        $stmt = $con->prepare($sql);
+        return $stmt->execute($params);
+    }
+    
+    function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
+        $con = $this->opencon();
+        
+        $businessOwnerId = null;
+        if ($userType === 'owner') {
+            $businessOwnerId = $loggedInID;
+        } elseif ($userType === 'employee') {
+            $businessOwnerId = $this->getEmployeeOwnerID($loggedInID);
+        }
+
+        if ($businessOwnerId === null) {
+            return [];
+        }
+
+        $sql = "
+            SELECT
+                o.OrderID, o.OrderDate, o.TotalAmount,
+                os.UserTypeID,
+                c.C_Username AS CustomerUsername,
+                e.EmployeeFN AS EmployeeFirstName, e.EmployeeLN AS EmployeeLastName,
+                ow.OwnerFN AS OwnerFirstName, ow.OwnerLN AS OwnerLastName,
+                p.PaymentMethod, p.ReferenceNo,
+                GROUP_CONCAT(
+                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', FORMAT(pp.UnitPrice, 2), ')')
+                    ORDER BY od.OrderDetailID SEPARATOR '; '    
+                ) AS OrderItems
+            FROM orders o
+            JOIN ordersection os ON o.OrderSID = os.OrderSID
+            LEFT JOIN customer c ON os.CustomerID = c.CustomerID
+            LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
+            LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
+            LEFT JOIN payment p ON o.OrderID = p.OrderID
+            LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
+            LEFT JOIN product prod ON od.ProductID = prod.ProductID
+            LEFT JOIN productprices pp ON od.PriceID = pp.PriceID
+            WHERE os.OwnerID = ?
+            GROUP BY o.OrderID 
+            ORDER BY o.OrderDate DESC
+        ";
+        
+        $stmt = $con->prepare($sql);
+        $stmt->execute([$businessOwnerId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     function signupCustomer($firstname, $lastname, $phonenum, $email, $username, $password) {
-    $con = $this->opencon();
-    try {
-        $con->beginTransaction();
-        $stmt = $con->prepare("INSERT INTO customer (CustomerFN, CustomerLN, C_PhoneNumber, C_Email, C_Username, C_Password) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$firstname, $lastname, $phonenum, $email, $username, $password]);
-        $userID = $con->lastInsertId();
-        $con->commit();
-        return $userID;
-    } catch (PDOException $e) {
-        $con->rollBack();
-        return false;
+        $con = $this->opencon();
+        try {
+            $con->beginTransaction();
+            $stmt = $con->prepare("INSERT INTO customer (CustomerFN, CustomerLN, C_PhoneNumber, C_Email, C_Username, C_Password) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$firstname, $lastname, $phonenum, $email, $username, $password]);
+            $userID = $con->lastInsertId();
+            $con->commit();
+            return $userID;
+        } catch (PDOException $e) {
+            $con->rollBack();
+            return false;
+        }
     }
-}
 
-function isUsernameExists($username) {
-    $con = $this->opencon();
+    function isUsernameExists($username) {
+        $con = $this->opencon();
+        $stmt1 = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Username = ?");
+        $stmt1->execute([$username]);
+        $count1 = $stmt1->fetchColumn();
+        $stmt2 = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Username = ?");
+        $stmt2->execute([$username]);
+        $count2 = $stmt2->fetchColumn();
+        return ($count1 > 0 || $count2 > 0);
+    }
 
-    // Check in customer table
-    $stmt1 = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Username = ?");
-    $stmt1->execute([$username]);
-    $count1 = $stmt1->fetchColumn();
+    function isEmailExists($email) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Email = ?");
+        $stmt->execute([$email]);
+        return $stmt->fetchColumn() > 0;
+    }
 
-    // Check in employee table
-    $stmt2 = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Username = ?");
-    $stmt2->execute([$username]);
-    $count2 = $stmt2->fetchColumn();
-
-    return ($count1 > 0 || $count2 > 0);
-}
-
-
-function isEmailExists($email) {
-    $con = $this->opencon();
-    $stmt = $con->prepare("SELECT COUNT(*) FROM customer WHERE C_Email = ?");
-    $stmt->execute([$email]);
-    $count = $stmt->fetchColumn();
-    return $count > 0;
-}
-
-    // Login function
     function loginCustomer($username, $password) {
-    $con = $this->opencon();
-    $stmt = $con->prepare("SELECT * FROM customer WHERE C_Username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user && password_verify($password, $user['C_Password'])) {
-        return $user;
-    } else {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT * FROM customer WHERE C_Username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user && password_verify($password, $user['C_Password'])) {
+            return $user;
+        }
         return false;
     }
-}
 
     function loginOwner($username, $password) {
-    $con = $this->opencon();
-    $stmt = $con->prepare("SELECT * FROM owner WHERE Username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user && password_verify($password, $user['Password'])) {
-        return $user;
-    } else {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT * FROM owner WHERE Username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user && password_verify($password, $user['Password'])) {
+            return $user;
+        }
         return false;
     }
-}
 
-// Employee login
-function loginEmployee($username, $password) {
-    $con = $this->opencon();
-    $stmt = $con->prepare("SELECT * FROM employee WHERE E_Username = ?");
-    $stmt->execute([$username]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user && password_verify($password, $user['E_Password'])) {
-        return $user;
-    } else {
+    function loginEmployee($username, $password) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT * FROM employee WHERE E_Username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user && password_verify($password, $user['E_Password'])) {
+            return $user;
+        }
         return false;
     }
-}
 
     function addEmployee($firstF, $firstN, $Euser, $password, $role, $emailN, $number, $owerID): bool|string {
         $con = $this->opencon();
         try {
             $con->beginTransaction();
-            $stmt = $con->prepare("INSERT INTO employee (EmployeeFN, EmployeeLN, E_Username, E_Password, Role, E_PhoneNumber, E_Email, OwnerID) 
-                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$firstF, $firstN, $Euser, $password, $role, $number,$emailN, $owerID]);
+            $stmt = $con->prepare("INSERT INTO employee (EmployeeFN, EmployeeLN, E_Username, E_Password, Role, E_PhoneNumber, E_Email, OwnerID) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$firstF, $firstN, $Euser, $password, $role, $number, $emailN, $owerID]);
             $userID = $con->lastInsertId();
             $con->commit();
             return $userID;
@@ -116,7 +317,6 @@ function loginEmployee($username, $password) {
         return $con->query("SELECT * FROM employee")->fetchAll();
     }
 
-    // New function to delete an employee (make sure this is in your classes/database.php)
     function deleteEmployee($employeeID): bool {
         $con = $this->opencon();
         try {
@@ -128,40 +328,27 @@ function loginEmployee($username, $password) {
         }
     }
 
-
-     function deleteProduct($productID): bool {
+    function deleteProduct($productID): bool {
         $con = $this->opencon();
         try {
             $con->beginTransaction();
-
-            // First, delete associated product prices
             $stmt_prices = $con->prepare("DELETE FROM productprices WHERE ProductID = ?");
             $stmt_prices->execute([$productID]);
-
-            // Now, delete the product itself
             $stmt_product = $con->prepare("DELETE FROM product WHERE ProductID = ?");
             $result = $stmt_product->execute([$productID]);
-
             $con->commit();
             return $result;
         } catch (PDOException $e) {
             $con->rollBack();
             error_log("DeleteProduct Error: " . $e->getMessage());
-            if (strpos($e->getMessage(), 'Cannot delete or update a parent row: a foreign key constraint fails') !== false) {
-            
-            }
             return false;
         }
     }
 
-    
-
-
-     function updateProductPrice($priceID, $unitPrice, $effectiveFrom, $effectiveTo): bool {
+    function updateProductPrice($priceID, $unitPrice, $effectiveFrom, $effectiveTo): bool {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("UPDATE productprices SET UnitPrice = ?, Effective_From = ?, Effective_To = ? WHERE PriceID = ?");
-            // If effectiveTo is an empty string, convert it to NULL for the database
             $effectiveTo = empty($effectiveTo) ? NULL : $effectiveTo;
             return $stmt->execute([$unitPrice, $effectiveFrom, $effectiveTo, $priceID]);
         } catch (PDOException $e) {
@@ -174,11 +361,9 @@ function loginEmployee($username, $password) {
         $con = $this->opencon();
         try {
             $con->beginTransaction();
-            // Insert into product (Created_AT is auto, OwnerID does not exist)
             $stmt = $con->prepare("INSERT INTO product (ProductName, ProductCategory) VALUES (?, ?)");
             $stmt->execute([$productName, $category]);
             $productID = $con->lastInsertId();
-            // Insert into productprices
             $stmt2 = $con->prepare("INSERT INTO productprices (ProductID, UnitPrice, Effective_From, Effective_To) VALUES (?, ?, ?, ?)");
             $stmt2->execute([$productID, $price, $effectiveFrom, $effectiveTo]);
             $con->commit();
@@ -189,13 +374,10 @@ function loginEmployee($username, $password) {
             return false;
         }
     }
+
     function getJoinedProductData() {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT product.ProductID, product.ProductName, product.ProductCategory, product.Created_AT,
-                                      productprices.UnitPrice, productprices.Effective_From, productprices.Effective_To,
-                                      productprices.PriceID  -- <--- ADDED THIS LINE
-                               FROM product
-                               JOIN productprices ON product.ProductID = productprices.ProductID");
+        $stmt = $con->prepare("SELECT product.ProductID, product.ProductName, product.ProductCategory, product.Created_AT, productprices.UnitPrice, productprices.Effective_From, productprices.Effective_To, productprices.PriceID FROM product JOIN productprices ON product.ProductID = productprices.ProductID");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -204,8 +386,7 @@ function loginEmployee($username, $password) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT COUNT(*) FROM employee WHERE E_Email = ?");
         $stmt->execute([$emailN]);
-        $count = $stmt->fetchColumn();
-        return $count > 0;
+        return $stmt->fetchColumn() > 0;
     }
 
     function isEmployeeUserExists($Euser) {
@@ -217,22 +398,11 @@ function loginEmployee($username, $password) {
 
     function getAllProductsWithPrice() {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT 
-                p.ProductID, 
-                p.ProductName, 
-                p.ProductCategory, 
-                p.Created_AT,
-                pp.UnitPrice,
-                pp.PriceID
-            FROM product p
-            LEFT JOIN productprices pp ON p.ProductID = pp.ProductID
-            GROUP BY p.ProductID
-        ");
+        $stmt = $con->prepare("SELECT p.ProductID, p.ProductName, p.ProductCategory, p.Created_AT, pp.UnitPrice, pp.PriceID FROM product p LEFT JOIN productprices pp ON p.ProductID = pp.ProductID GROUP BY p.ProductID");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get all unique categories
     function getAllCategories() {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT DISTINCT ProductCategory FROM product");
@@ -240,72 +410,31 @@ function loginEmployee($username, $password) {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-
-    // Function to add a payment record (now accepts PDO object)
-      function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 0): bool {
-        // Use the provided PDO object ($pdo) instead of opening a new connection
+    function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 0): bool {
         try {
             $stmt = $pdo->prepare("INSERT INTO payment (OrderID, PaymentMethod, PaymentAmount, PaymentStatus, ReferenceNo) VALUES (?, ?, ?, ?, ?)");
-            // Add a temporary logging line to verify parameters are correct just before execution
-            error_log("addPaymentRecord parameters: OrderID={$orderID}, Method={$paymentMethod}, Amount={$paymentAmount}, RefNo={$referenceNo}, Status={$paymentStatus}");
-            
             return $stmt->execute([$orderID, $paymentMethod, $paymentAmount, $paymentStatus, $referenceNo]);
         } catch (PDOException $e) {
-            error_log("AddPaymentRecord Error: " . $e->getMessage());
-            // No need to echo/die here now, as it's part of a larger transaction block that handles exceptions.
+            error_log("ERROR: AddPaymentRecord Error: " . $e->getMessage());
             return false;
         }
     }
 
-    // Function to get full order details for a receipt (modified for access control)
     function getFullOrderDetails($orderID, $referenceNo) {
         $con = $this->opencon();
-        
-        // Fetch order header and payment details, including UserTypeID, CustomerID, EmployeeID, OwnerID from ordersection
-        $stmt = $con->prepare("
-            SELECT
-                o.OrderID,
-                o.OrderDate,
-                o.TotalAmount,
-                os.UserTypeID,
-                os.CustomerID,
-                os.EmployeeID,
-                os.OwnerID,
-                p.PaymentMethod,
-                p.ReferenceNo,
-                p.PaymentStatus
-            FROM orders o
-            JOIN ordersection os ON o.OrderSID = os.OrderSID
-            LEFT JOIN payment p ON o.OrderID = p.OrderID
-            WHERE o.OrderID = ? AND p.ReferenceNo = ?
-        ");
+        $stmt = $con->prepare("SELECT o.OrderID, o.OrderDate, o.TotalAmount, os.UserTypeID, os.CustomerID, os.EmployeeID, os.OwnerID, p.PaymentMethod, p.ReferenceNo, p.PaymentStatus FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID LEFT JOIN payment p ON o.OrderID = p.OrderID WHERE o.OrderID = ? AND p.ReferenceNo = ?");
         $stmt->execute([$orderID, $referenceNo]);
         $orderHeader = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if ($orderHeader) {
-            // Fetch order details (items)
-            $stmtDetails = $con->prepare("
-                SELECT
-                    od.Quantity,
-                    od.Subtotal,
-                    prod.ProductName,
-                    pp.UnitPrice
-                FROM orderdetails od
-                JOIN product prod ON od.ProductID = prod.ProductID
-                JOIN productprices pp ON od.PriceID = pp.PriceID
-                WHERE od.OrderID = ?
-            ");
+            $stmtDetails = $con->prepare("SELECT od.Quantity, od.Subtotal, prod.ProductName, pp.UnitPrice FROM orderdetails od JOIN product prod ON od.ProductID = prod.ProductID JOIN productprices pp ON od.PriceID = pp.PriceID WHERE od.OrderID = ?");
             $stmtDetails->execute([$orderID]);
             $orderDetails = $stmtDetails->fetchAll(PDO::FETCH_ASSOC);
-
-            $orderHeader['Details'] = $orderDetails; // Attach details to the header
+            $orderHeader['Details'] = $orderDetails;
             return $orderHeader;
         }
         return false;
     }
 
-
-    // Function to get the OwnerID for a given EmployeeID
     function getEmployeeOwnerID($employeeID) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT OwnerID FROM employee WHERE EmployeeID = ?");
@@ -314,104 +443,22 @@ function loginEmployee($username, $password) {
         return $result['OwnerID'] ?? null;
     }
 
-    // Function to get the ID of any (e.g., first) owner. Useful if all customer orders belong to one business.
-    // ADDED DEBUG LOGGING HERE
     function getAnyOwnerId() {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("SELECT OwnerID FROM owner LIMIT 1");
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $ownerId = $result['OwnerID'] ?? null;
-            error_log("DEBUG: getAnyOwnerId() fetched OwnerID: " . ($ownerId ?? 'NULL')); // ADDED LOG
-            return $ownerId;
+            return $result['OwnerID'] ?? null;
         } catch (PDOException $e) {
-            error_log("ERROR: getAnyOwnerId() failed: " . $e->getMessage()); // ADDED LOG
+            error_log("ERROR: getAnyOwnerId() failed: " . $e->getMessage());
             return null;
         }
     }
-
-
-    // Function to get orders for owner OR employee (modified for access control)
-    function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
-    $con = $this->opencon();
-
-    $sql = "
-        SELECT
-            o.OrderID,
-            o.OrderDate,
-            o.TotalAmount,
-            os.UserTypeID,
-            c.C_Username AS CustomerUsername,
-            e.EmployeeFN AS EmployeeFirstName,
-            e.EmployeeLN AS EmployeeLastName,
-            ow.OwnerFN AS OwnerFirstName,
-            ow.OwnerLN AS OwnerLastName,
-            p.PaymentMethod,
-            p.ReferenceNo,
-            GROUP_CONCAT(
-                CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
-                ORDER BY od.OrderDetailID SEPARATOR '; '
-            ) AS OrderItems
-        FROM orders o
-        JOIN ordersection os ON o.OrderSID = os.OrderSID
-        LEFT JOIN customer c ON os.CustomerID = c.CustomerID
-        LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
-        LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
-        LEFT JOIN payment p ON o.OrderID = p.OrderID
-        LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
-        LEFT JOIN product prod ON od.ProductID = prod.ProductID
-    ";
-
-    $params = [];
-
-    if ($userType === 'owner') {
-        $sql .= " WHERE os.OwnerID = ?";
-        $params[] = $loggedInID;
-    } elseif ($userType === 'employee') {
-        $ownerID = $this->getEmployeeOwnerID($loggedInID);
-        if ($ownerID === null) {
-            return [];
-        }
-        $sql .= " WHERE (os.EmployeeID = ? OR os.OwnerID = ? OR (os.CustomerID IS NOT NULL AND os.OwnerID = ?))";
-        $params[] = $loggedInID;
-        $params[] = $ownerID;
-        $params[] = $ownerID;
-    } else {
-        return [];
-    }
-
-    $sql .= " GROUP BY o.OrderID ORDER BY o.OrderDate DESC";
-
-    $stmt = $con->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-    // Function to get orders specifically for a customer (already added previously)
-    // No changes needed here, just for context
+    
     function getOrdersForCustomer($customerID) {
         $con = $this->opencon();
-        $stmt = $con->prepare("
-            SELECT
-                o.OrderID,
-                o.OrderDate,
-                o.TotalAmount,
-                p.PaymentMethod,
-                p.ReferenceNo,
-                GROUP_CONCAT(
-                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
-                    ORDER BY od.OrderDetailID SEPARATOR '; '
-                ) AS OrderItems
-            FROM orders o
-            JOIN ordersection os ON o.OrderSID = os.OrderSID
-            LEFT JOIN payment p ON o.OrderID = p.OrderID
-            LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
-            LEFT JOIN product prod ON od.ProductID = prod.ProductID
-            WHERE os.CustomerID = ?
-            GROUP BY o.OrderID
-            ORDER BY o.OrderDate DESC
-        ");
+        $stmt = $con->prepare("SELECT o.OrderID, o.OrderDate, o.TotalAmount, p.PaymentMethod, p.ReferenceNo, GROUP_CONCAT(CONCAT(prod.ProductName, ' x', od.Quantity) SEPARATOR '; ') AS OrderItems FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID LEFT JOIN payment p ON o.OrderID = p.OrderID LEFT JOIN orderdetails od ON o.OrderID = od.OrderID LEFT JOIN product prod ON od.ProductID = prod.ProductID WHERE os.CustomerID = ? GROUP BY o.OrderID ORDER BY o.OrderDate DESC");
         $stmt->execute([$customerID]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

@@ -1,20 +1,19 @@
 <?php
-// Start output buffering immediately to capture any stray output
+
 ob_start();
 
 session_start();
 if (!isset($_SESSION['OwnerID'])) {
   header('Location: ../all/login.php');
-  ob_end_clean(); // Discard any buffered output before redirect
+  ob_end_clean(); 
   exit();
 }
 
-require_once('../classes/database.php'); // Corrected path to classes folder
+require_once('../classes/database.php'); 
 $con = new database();
 $sweetAlertConfig = "";
 
-// Temporarily suppress all errors and prevent them from being displayed
-// This will hide the "Deprecated" warning from showing on the page.
+
 error_reporting(0);
 ini_set('display_errors', 0);
 
@@ -58,7 +57,7 @@ if (isset($_POST['add_product'])) {
   }
 }
 
-// End the initial output buffering, allowing normal HTML/PHP output to proceed
+
 ob_end_flush();
 ?>
 
@@ -224,7 +223,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
     `,
     showCancelButton: true,
     confirmButtonText: 'Add',
-    focusConfirm: false, // Prevents auto-focus on confirm button when validation message appears
+    focusConfirm: false, 
     preConfirm: () => {
       const productName = document.getElementById('swal-product-name').value.trim();
       const category = document.getElementById('swal-category').value;
@@ -235,10 +234,10 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
 
       let isValid = true;
       
-      // Reset feedback
+  
       document.querySelectorAll('#add-product-btn + .swal2-popup .swal-feedback').forEach(span => span.textContent = '');
 
-      // Simple validation for required fields
+     
       if (!productName) {
         document.getElementById('feedback-productName').textContent = 'Product Name is required.';
         isValid = false;
@@ -260,7 +259,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
         isValid = false;
       }
 
-      // Date logic validation (Effective From <= Effective To)
+     
       if (effectiveFrom && effectiveTo && new Date(effectiveFrom) > new Date(effectiveTo)) {
         document.getElementById('feedback-effectiveTo').textContent = 'Effective To must be after or same as Effective From.';
         isValid = false;
@@ -282,7 +281,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
       return true;
     },
     didOpen: () => {
-      // Add real-time validation feedback to inputs if needed
+      
       const priceInput = document.getElementById('swal-price');
       priceInput.addEventListener('input', () => {
         const value = priceInput.value;
@@ -307,7 +306,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
         const feedbackFrom = document.getElementById('feedback-effectiveFrom');
         const feedbackTo = document.getElementById('feedback-effectiveTo');
 
-        // Reset
+     
         feedbackFrom.textContent = '';
         feedbackTo.textContent = '';
         effectiveFromInput.classList.remove('is-valid', 'is-invalid');
@@ -323,7 +322,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
         if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
           feedbackTo.textContent = 'Effective To must be after or same as Effective From.';
           effectiveToInput.classList.add('is-invalid');
-        } else if (toDate) { // Only mark valid if there's a toDate
+        } else if (toDate) { 
             effectiveToInput.classList.add('is-valid');
         }
       };
@@ -342,7 +341,7 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.delete-product-btn').forEach(button => {
     button.addEventListener('click', function(e) {
-      e.preventDefault(); // Prevent default link behavior
+      e.preventDefault(); 
  
       const productId = this.dataset.productId;
       const productName = this.dataset.productName;
@@ -358,23 +357,23 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelButtonText: 'Cancel'
       }).then((result) => {
         if (result.isConfirmed) {
-          // Send AJAX request to delete the product
+          
           const formData = new FormData();
           formData.append('product_id', productId);
 
-          fetch('delete_product.php', { // Path to the delete product script in the same directory
+          fetch('delete_product.php', { 
             method: 'POST',
             body: formData
           })
           .then(response => {
-            // Check if the response is OK before trying to parse as JSON
+          
             if (!response.ok) {
-                return response.text().then(text => { // Get raw text to see PHP errors/warnings
+                return response.text().then(text => { 
                     console.error('Server response was not OK:', text);
                     throw new Error(`Server returned status ${response.status}. Check console for details. Raw response: ${text.substring(0, 100)}...`);
                 });
             }
-            return response.json(); // Attempt to parse as JSON only if response is OK
+            return response.json(); 
           })
           .then(data => {
             if (data.success) {
@@ -419,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const priceId = this.dataset.priceId;
       const currentUnitPrice = this.dataset.unitPrice;
       const currentEffectiveFrom = this.dataset.effectiveFrom;
-      const currentEffectiveTo = this.dataset.effectiveTo; // This might be empty string for null
+      const currentEffectiveTo = this.dataset.effectiveTo; 
 
       Swal.fire({
         title: `Edit Price for ${productName}`,
@@ -447,22 +446,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
           let isValid = true;
 
-          // Reset feedback messages specific to this form
+   
           document.querySelectorAll('.swal2-popup .swal-feedback').forEach(span => span.textContent = '');
 
-          // Validate Unit Price
+    
           if (!unitPrice || isNaN(parseFloat(unitPrice)) || parseFloat(unitPrice) <= 0) {
             document.getElementById('feedback-edit-unitPrice').textContent = 'Valid Unit Price is required.';
             isValid = false;
           }
 
-          // Validate Effective From
           if (!effectiveFrom) {
             document.getElementById('feedback-edit-effectiveFrom').textContent = 'Effective From date is required.';
             isValid = false;
           }
 
-          // Validate Effective To against Effective From
           if (effectiveFrom && effectiveTo && new Date(effectiveFrom) > new Date(effectiveTo)) {
             document.getElementById('feedback-edit-effectiveTo').textContent = 'Effective To must be after or same as Effective From.';
             isValid = false;
@@ -476,13 +473,13 @@ document.addEventListener('DOMContentLoaded', function() {
           return { priceID: priceId, unitPrice: unitPrice, effectiveFrom: effectiveFrom, effectiveTo: effectiveTo };
         },
         didOpen: () => {
-          // Real-time validation for edit form
+      
           const editUnitPriceInput = document.getElementById('swal-edit-unitPrice');
           const editEffectiveFromInput = document.getElementById('swal-edit-effectiveFrom');
           const editEffectiveToInput = document.getElementById('swal-edit-effectiveTo');
 
           const validateEditForm = () => {
-            // Price validation
+        
             const priceValue = editUnitPriceInput.value;
             const priceFeedback = document.getElementById('feedback-edit-unitPrice');
             if (!priceValue || isNaN(parseFloat(priceValue)) || parseFloat(priceValue) <= 0) {
@@ -495,7 +492,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 editUnitPriceInput.classList.add('is-valid');
             }
 
-            // Date validation
             const fromDate = editEffectiveFromInput.value;
             const toDate = editEffectiveToInput.value;
             const fromFeedback = document.getElementById('feedback-edit-effectiveFrom');
@@ -533,9 +529,9 @@ document.addEventListener('DOMContentLoaded', function() {
           formData.append('priceID', priceID);
           formData.append('unitPrice', unitPrice);
           formData.append('effectiveFrom', effectiveFrom);
-          formData.append('effectiveTo', effectiveTo); // Send empty string if null
+          formData.append('effectiveTo', effectiveTo); 
 
-          fetch('update_product.php', { // Path to the update product script
+          fetch('update_product.php', { 
             method: 'POST',
             body: formData
           })
@@ -555,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `${productName} price has been updated.`,
                 'success'
               ).then(() => {
-                // Reload the page to reflect changes
+            
                 window.location.reload();
               });
             } else {

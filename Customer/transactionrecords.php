@@ -1,7 +1,10 @@
 <?php
 session_start();
+ob_start(); // Start output buffering
+
 if (!isset($_SESSION['CustomerID'])) {
   header('Location: ../all/login.php'); // Path to login.php from Customer/
+  ob_end_clean();
   exit();
 }
 require_once('../classes/database.php'); // Path to database class from Customer/
@@ -27,6 +30,23 @@ $customerOrders = $con->getOrdersForCustomer($customerID);
     /* Adjust background image path relative to the new location of customer_tranlist.php */
     /* If 'images' is in the LoveAmaiah/ root, path from 'Customer/' would be '../images/LAbg.png' */
     body { background: url('../images/LAbg.png') no-repeat center center/cover; }
+
+    /* Custom scrollbar styles for order list containers */
+    .overflow-y-auto::-webkit-scrollbar {
+        width: 8px; /* Width of the scrollbar */
+    }
+    .overflow-y-auto::-webkit-scrollbar-track {
+        background: rgba(200, 200, 200, 0.3); /* Color of the tracking area */
+        border-radius: 10px;
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: #C4A07A; /* Color of the scroll thumb */
+        border-radius: 10px; /* Roundness of the scroll thumb */
+        border: 2px solid rgba(255, 255, 255, 0.5); /* Creates padding around thumb */
+    }
+    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background-color: #a17850; /* Color of the scroll thumb on hover */
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">

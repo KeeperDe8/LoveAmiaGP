@@ -1,118 +1,53 @@
 <?php
 session_start();
-// Start output buffering immediately to prevent headers already sent errors
 ob_start();
 
 if (!isset($_SESSION['CustomerID'])) {
-  header('Location: ../all/login.php'); // Path to login.php
+  header('Location: ../all/login.php');
   ob_end_clean();
   exit();
 }
-require_once('../classes/database.php'); // Path to classes folder
+
+require_once('../classes/database.php');
 $con = new database();
-$customer = isset($_SESSION['CustomerFN']) ? $_SESSION['CustomerFN'] : 'Guest';
-$products = $con->getAllProductsWithPrice();
-$categories = $con->getAllCategories();
 
 // --- ORDER SAVE LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
-    $orderData = json_decode($_POST['orderData'], true);
-    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
-    $customerID = $_SESSION['CustomerID'];
-    $totalAmount = 0;
-
-    foreach ($orderData as $item) {
-        $totalAmount += $item['price'] * $item['quantity'];
+    
+    // Check session again in case it expired
+    if (!isset($_SESSION['CustomerID'])) {
+        header('Location: ../all/login.php?error=session_expired');
+        ob_end_clean();
+        exit();
     }
+    
+    $orderData = json_decode($_POST['orderData'], true);
+    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'gcash';
+    $customerID = $_SESSION['CustomerID'];
 
-    $db = $con->opencon(); // Get PDO object from database class
+    // Call the centralized processOrder method for a 'customer'
+    $result = $con->processOrder($orderData, $paymentMethod, $customerID, 'customer');
 
-    try {
-        $db->beginTransaction();
-
-        // Determine the OwnerID for this customer's order
-        // Fetch any existing OwnerID from the database.
-        $ownerIDForCustomerOrder = $con->getAnyOwnerId();
-        // DEBUG LOG: Check if OwnerID was retrieved successfully from getAnyOwnerId()
-        error_log("DEBUG: customerpage.php - OwnerIDForCustomerOrder retrieved from getAnyOwnerId(): " . ($ownerIDForCustomerOrder ?? 'NULL'));
-
-        if ($ownerIDForCustomerOrder === null) {
-            error_log("ERROR: customerpage.php - No OwnerID found via getAnyOwnerId(). Order cannot be placed by customer.");
-            throw new Exception("No owner found to associate with this customer order. Order cannot be placed.");
-        }
-
-        // 1. Insert into ordersection (UserTypeID=3 for customer)
-        // Using NAMED PARAMETERS for clarity and to prevent order/null binding issues
-        // The SQL query matches columns: CustomerID, EmployeeID, OwnerID, UserTypeID
-        // The values will be: $customerID, NULL, $ownerIDForCustomerOrder, 3
-        $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (:customerID, :employeeID, :ownerID, :userTypeID)");
-        $orderSectionParams = [
-            ':customerID' => $customerID,
-            ':employeeID' => NULL, // EmployeeID is NULL for customer orders
-            ':ownerID' => $ownerIDForCustomerOrder, // This is the crucial part that was potentially NULL or misaligned
-            ':userTypeID' => 3 // UserTypeID for customer
-        ];
-        // DEBUG LOG: Dump the exact parameters array before execution
-        error_log("DEBUG: customerpage.php - OrderSection INSERT parameters before execute: " . print_r($orderSectionParams, true));
-
-        $stmt->execute($orderSectionParams); // Execute with the explicitly defined parameters array
-        $orderSID = $db->lastInsertId();
-
-        // DEBUG LOG: Verify successful insertion and retrieved OrderSID
-        error_log("DEBUG: customerpage.php - Successfully inserted OrderSID: {$orderSID}. Confirmed parameters used: CustomerID={$customerID}, EmployeeID=NULL, OwnerID={$ownerIDForCustomerOrder}, UserTypeID=3");
-
-
-        // 2. Insert into orders with the new OrderSID
-        $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
-        $stmt->execute([$totalAmount, $orderSID]);
-        $orderID = $db->lastInsertId();
-
-        // 3. Insert order details
-        foreach ($orderData as $item) {
-            $productID = intval(str_replace('product-', '', $item['id']));
-            $priceID = isset($item['price_id']) ? $item['price_id'] : 1;
-            $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $orderID,
-                $productID,
-                $priceID,
-                $item['quantity'],
-                $item['price'] * $item['quantity']
-            ]);
-        }
-
-        // 4. Generate a random reference number
-        $referenceNo = strtoupper('CUST' . uniqid() . mt_rand(1000, 9999)); // Unique ref for customer orders
-
-        // 5. Insert into payment table (status 0 for pending)
-        // Pass the same $db (PDO) object to addPaymentRecord to ensure it's part of the transaction
-        $con->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0); // PaymentStatus 0 = Pending
-
-        $db->commit();
-
-        // DEBUG LOG: Customer Order saved successfully.
-        error_log("DEBUG: Customer Order saved successfully. OrderID: {$orderID}, Ref: {$referenceNo}. Redirecting to receipt.");
-
-
-        // Redirect to a payment receipt/confirmation page (now in ../all/)
-        header("Location: ../all/order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
-        ob_end_clean(); // Discard any buffered output before redirect
-        exit;
-
-    } catch (PDOException $e) {
-        $db->rollBack();
-        error_log("ERROR: Customer Order Save Error (PDO): " . $e->getMessage());
-        header("Location: customerpage.php?error=order_failed_db"); // Redirect back with an error indicator
+    // Handle the result from the method
+    if ($result['success']) {
+        // On success, redirect to their personal transaction history page
+        header("Location: ../Customer/transactionrecords.php");
         ob_end_clean();
         exit;
-    } catch (Exception $e) {
-        $db->rollBack();
-        error_log("ERROR: Customer Order Save Error (General): " . $e->getMessage());
-        header("Location: customerpage.php?error=order_failed_general"); // Redirect back with an error indicator
+    } else {
+        // On failure, log the error and redirect back with a generic error message
+        error_log("Customer Order Save Failed: " . $result['message']);
+        header("Location: customerpage.php?error=order_failed");
         ob_end_clean();
         exit;
     }
 }
+
+
+// This part runs for the initial page load (GET request)
+$customer = isset($_SESSION['CustomerFN']) ? $_SESSION['CustomerFN'] : 'Guest';
+$products = $con->getAllProductsWithPrice();
+$categories = $con->getAllCategories();
 ?>
 
 <!DOCTYPE html>
@@ -153,9 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
     <header class="mb-4">
       <p class="text-xs text-gray-400 mb-0.5">Welcome, <?php echo htmlspecialchars($customer); ?></p>
-      <!-- FIXED H1 TITLE HERE -->
       <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3"><?php echo htmlspecialchars($customer); ?>'s Order</h1>
-      <!-- Re-added search form as seen in original designs -->
       <form aria-label="Search menu" class="w-full max-w-xs ml-auto relative" role="search">
         <input aria-label="Search menu" class="w-full rounded-full py-2 px-4 pr-10 text-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4B2E0E]" placeholder="Search menu..." type="search"/>
         <button aria-label="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" type="submit">
@@ -174,16 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
  
   <!-- Order summary (FIXED LAYOUT) -->
   <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col p-4">
-   <div class="flex-1 overflow-y-auto pr-2"> <!-- flex-1 makes this div grow and push content down, overflow-y-auto adds scroll -->
-    <?php
-    $customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
-    ?>
-    <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo "{$customer}'s Order:"; ?></h2>  
+   <div class="flex-1 overflow-y-auto pr-2">
+    <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo htmlspecialchars($customer); ?>'s Order:</h2>  
     <div class="text-xs text-gray-700" id="order-list">
      <p class="font-semibold mb-1">CATEGORY</p>
     </div>
    </div>
-   <div class="mt-6 text-center"> <!-- This div will stick to the bottom due to flex-1 above it -->
+   <div class="mt-6 text-center">
     <p class="font-semibold mb-1">Total:</p>
     <p class="text-4xl font-extrabold text-[#4B2E0E] flex justify-center items-center gap-1" id="order-total"><span>₱</span> 0.00</p>
    </div>
@@ -414,8 +344,7 @@ echo json_encode(array_map(function($p) {
        title: 'Select Payment Method',
        input: 'radio',
        inputOptions: {
-         cash: 'Cash',
-         gcash: 'GCash' // Updated payment options
+         gcash: 'GCash'
        },
        inputValidator: (value) => {
          if (!value) {

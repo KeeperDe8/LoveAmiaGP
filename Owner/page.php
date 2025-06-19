@@ -1,81 +1,50 @@
 <?php
 session_start();
-// Start output buffering immediately to prevent headers already sent errors
-ob_start();
+
+ob_start(); 
 
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: ../all/login.php'); // Consistent path to login.php
-  ob_end_clean(); // Discard any buffered output before redirect
-  exit();
+  // For AJAX requests, don't redirect, just exit. The JS will handle the error.
+  if (!(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')) {
+      header('Location: ../all/login.php');
+      ob_end_clean(); 
+      exit();
+  }
 }
-require_once('../classes/database.php'); // Correct path to classes folder
+
+require_once('../classes/database.php'); 
 $con = new database();
+
+// THIS BLOCK HANDLES THE AJAX POST REQUEST TO SAVE THE ORDER
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
+    header('Content-Type: application/json'); 
+    ob_end_clean(); 
+
+    // Check if session is still valid for AJAX request
+    if (!isset($_SESSION['OwnerID'])) {
+        echo json_encode(['success' => false, 'message' => 'Session expired. Please log in again.']);
+        exit;
+    }
+
+    $orderData = json_decode($_POST['orderData'], true);
+    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
+    $ownerID = $_SESSION['OwnerID']; 
+
+    // Call the new, clean method from the database class
+    $result = $con->processOrder($orderData, $paymentMethod, $ownerID, 'owner');
+
+    // Return the result from the method as a JSON response
+    echo json_encode($result);
+    exit; 
+}
+
+// This part runs for the initial page load (GET request)
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
 
-// --- ORDER SAVE LOGIC ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
-    $orderData = json_decode($_POST['orderData'], true);
-    $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash'; // 'cash' or 'gcash'
-    $ownerID = $_SESSION['OwnerID'];
-    $totalAmount = 0;
-
-    foreach ($orderData as $item) {
-        $totalAmount += $item['price'] * $item['quantity'];
-    }
-
-    $db = $con->opencon(); // Get PDO object from database class
-
-    try {
-        $db->beginTransaction();
-
-        // 1. Insert into ordersection (UserTypeID=1 for owner)
-        $stmt = $db->prepare("INSERT INTO ordersection (CustomerID, EmployeeID, OwnerID, UserTypeID) VALUES (?, ?, ?, ?)");
-        $stmt->execute([null, null, $ownerID, 1]); // customerID and EmployeeID are NULL for owner orders
-        $orderSID = $db->lastInsertId();
-
-        // 2. Insert into orders with the new OrderSID
-        $stmt = $db->prepare("INSERT INTO orders (OrderDate, TotalAmount, OrderSID) VALUES (NOW(), ?, ?)");
-        $stmt->execute([$totalAmount, $orderSID]);
-        $orderID = $db->lastInsertId();
-
-        // 3. Insert order details
-        foreach ($orderData as $item) {
-            $productID = intval(str_replace('product-', '', $item['id']));
-            $priceID = isset($item['price_id']) ? $item['price_id'] : 1; // Default to 1 if price_id is not set
-            $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $orderID,
-                $productID,
-                $priceID,
-                $item['quantity'],
-                $item['price'] * $item['quantity']
-            ]);
-        }
-
-        // 4. Generate a random reference number
-        $referenceNo = strtoupper('LA' . uniqid() . mt_rand(1000, 9999)); // Example: LA60c7f7b3c2d4e1234
-
-        // 5. Insert into payment table (status 0 for pending)
-        $con->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0); // PaymentStatus 0 = Pending
-
-        $db->commit();
-
-        // Redirect to order_receipt.php (now in ../all/)
-        header("Location: ../all/order_receipt.php?order_id={$orderID}&ref_no={$referenceNo}");
-        ob_end_clean(); // Discard any buffered output before redirect
-        exit;
-
-    } catch (PDOException $e) {
-        $db->rollBack();
-        error_log("Order Save Error: " . $e->getMessage()); // Log error for debugging
-        header("Location: page.php?error=order_failed"); // Redirect back to this page with an error indicator
-        ob_end_clean();
-        exit;
-    }
-}
 ?>
 
+<!DOCTYPE html>
 <html lang="en">
  <head>
   <meta charset="utf-8"/>
@@ -156,7 +125,7 @@ echo json_encode(array_map(function($p) {
 }, $products));
 ?>;
 
-   // Dynamic categories from PHP
+
    const categories = <?php echo json_encode($categories); ?>;
    const categoryNav = document.getElementById('category-nav');
    function renderCategories() {
@@ -371,9 +340,9 @@ echo json_encode(array_map(function($p) {
        },
        confirmButtonText: 'Proceed',
        showCancelButton: true
-     }).then((result) => {
-       if (result.isConfirmed) {
-         const paymentMethod = result.value;
+     }).then((paymentResult) => {
+       if (paymentResult.isConfirmed) {
+         const paymentMethod = paymentResult.value;
          const orderArray = Object.values(order).map(item => ({
            id: item.id,
            price: item.price,
@@ -381,24 +350,67 @@ echo json_encode(array_map(function($p) {
            price_id: item.price_id
          }));
          
-         const form = document.createElement('form');
-         form.method = 'POST';
-         form.style.display = 'none';
+         // Display a loading SweetAlert while processing
+         Swal.fire({
+           title: 'Processing Order...',
+           text: 'Please wait, your transaction is being processed.',
+           allowOutsideClick: false,
+           didOpen: () => {
+             Swal.showLoading();
+           }
+         });
 
-         const inputOrder = document.createElement('input');
-         inputOrder.type = 'hidden';
-         inputOrder.name = 'orderData';
-         inputOrder.value = JSON.stringify(orderArray);
-         form.appendChild(inputOrder);
+         // Use Fetch API to send data via POST
+         const formData = new FormData();
+         formData.append('orderData', JSON.stringify(orderArray));
+         formData.append('paymentMethod', paymentMethod);
 
-         const inputPayment = document.createElement('input');
-         inputPayment.type = 'hidden';
-         inputPayment.name = 'paymentMethod';
-         inputPayment.value = paymentMethod;
-         form.appendChild(inputPayment);
+         fetch('page.php', { // Post to the same page
+           method: 'POST',
+           body: formData
+         })
+         .then(response => {
+        
+           if (!response.ok) {
+            
+             return response.text().then(text => { 
+               throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
+             });
+           }
+           return response.json(); 
+         })
+         .then(data => {
+           Swal.close(); 
 
-         document.body.appendChild(form);
-         form.submit();
+           if (data.success) {
+             Swal.fire({
+               icon: 'success',
+               title: 'Transaction Successful!',
+               text: data.message, 
+               confirmButtonText: 'OK'
+             }).then(() => {
+               
+               window.location.href = `../all/order_receipt.php?order_id=${data.order_id}&ref_no=${data.ref_no}`;
+             });
+           } else {
+             Swal.fire({
+               icon: 'error',
+               title: 'Transaction Failed!',
+               text: data.message || 'An unknown error occurred. Please try again.',
+               confirmButtonText: 'OK'
+             });
+           }
+         })
+         .catch(error => {
+           Swal.close(); 
+           console.error('Fetch Error:', error); 
+           Swal.fire({
+             icon: 'error',
+             title: 'Error!',
+             text: `Could not process order. Please try again. Check console for details.`,
+             confirmButtonText: 'OK'
+           });
+         });
        }
      });
    });

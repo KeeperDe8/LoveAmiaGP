@@ -35,10 +35,7 @@ if ($order) {
         // Owner can view orders directly associated with their OwnerID
         $hasPermission = true;
     } elseif ($loggedInUserType == 'employee') {
-        // Employee can view:
-        // 1. Orders they personally placed (EmployeeID matches)
-        // 2. Orders placed by customers under their owner's business (Customer order, OwnerID matches employee's owner)
-        // 3. Orders placed directly by their owner (Owner order, OwnerID matches employee's owner)
+        
         $employeeOwnerID = $con->getEmployeeOwnerID($loggedInID);
         if ($employeeOwnerID !== null) {
             if (
@@ -68,6 +65,7 @@ if (!$order || !$hasPermission) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <body style="background: url('../images/LAbg.png') no-repeat center center/cover;" class="min-h-screen flex flex-col items-center justify-center"></body>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>Order Receipt</title>
