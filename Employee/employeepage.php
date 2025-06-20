@@ -1,6 +1,6 @@
 <?php
 session_start();
-// Start output buffering immediately to prevent headers already sent errors
+
 ob_start();
 
 if (!isset($_SESSION['EmployeeID'])) {
@@ -9,16 +9,15 @@ if (!isset($_SESSION['EmployeeID'])) {
   exit();
 }
 
-require_once('../classes/database.php'); // Correct path to classes folder
+require_once('../classes/database.php'); 
 $con = new database();
 
 
-// --- ORDER SAVE LOGIC ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     
-    // It's good practice to double-check the session here in case it expired
+  
     if (!isset($_SESSION['EmployeeID'])) {
-        // Redirect to login if session is lost during a POST request
+      
         header('Location: ../all/login.php?error=session_expired');
         ob_end_clean();
         exit();
@@ -28,18 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
     $employeeID = $_SESSION['EmployeeID'];
 
-    // Call the unified processOrder method, specifying the user type as 'employee'
+   
     $result = $con->processOrder($orderData, $paymentMethod, $employeeID, 'employee');
 
-    // Handle the result from the processOrder method
+   
     if ($result['success']) {
-        // On success, redirect to the receipt page with the new order details
+       
         $redirectUrl = "../all/order_receipt.php?order_id={$result['order_id']}&ref_no={$result['ref_no']}";
         header("Location: " . $redirectUrl);
         ob_end_clean();
         exit;
     } else {
-        // On failure, log the specific error and redirect back with a generic error message
+       
         error_log("Employee Order Save Failed: " . $result['message']);
         header("Location: employeepage.php?error=order_failed"); 
         ob_end_clean();
@@ -47,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     }
 }
 
-// This part runs for the initial page load (GET request)
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
 

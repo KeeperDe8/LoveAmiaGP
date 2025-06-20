@@ -4,7 +4,7 @@ session_start();
 ob_start(); 
 
 if (!isset($_SESSION['OwnerID'])) {
-  // For AJAX requests, don't redirect, just exit. The JS will handle the error.
+
   if (!(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')) {
       header('Location: ../all/login.php');
       ob_end_clean(); 
@@ -15,12 +15,10 @@ if (!isset($_SESSION['OwnerID'])) {
 require_once('../classes/database.php'); 
 $con = new database();
 
-// THIS BLOCK HANDLES THE AJAX POST REQUEST TO SAVE THE ORDER
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     header('Content-Type: application/json'); 
     ob_end_clean(); 
 
-    // Check if session is still valid for AJAX request
     if (!isset($_SESSION['OwnerID'])) {
         echo json_encode(['success' => false, 'message' => 'Session expired. Please log in again.']);
         exit;
@@ -30,15 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'cash';
     $ownerID = $_SESSION['OwnerID']; 
 
-    // Call the new, clean method from the database class
+   
     $result = $con->processOrder($orderData, $paymentMethod, $ownerID, 'owner');
 
-    // Return the result from the method as a JSON response
+
     echo json_encode($result);
     exit; 
 }
 
-// This part runs for the initial page load (GET request)
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
 

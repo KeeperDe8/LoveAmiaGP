@@ -10,7 +10,7 @@ require_once('../classes/database.php');
 $con = new database();
 $sweetAlertConfig = "";
 
-// Logic for adding an employee remains the same
+
 if (isset($_POST['add_employee'])) {
   $owerID = $_SESSION['OwnerID'];
   $firstF = $_POST['firstF'];

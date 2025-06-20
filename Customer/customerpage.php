@@ -11,10 +11,10 @@ if (!isset($_SESSION['CustomerID'])) {
 require_once('../classes/database.php');
 $con = new database();
 
-// --- ORDER SAVE LOGIC ---
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     
-    // Check session again in case it expired
+   
     if (!isset($_SESSION['CustomerID'])) {
         header('Location: ../all/login.php?error=session_expired');
         ob_end_clean();
@@ -25,17 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'gcash';
     $customerID = $_SESSION['CustomerID'];
 
-    // Call the centralized processOrder method for a 'customer'
+   
     $result = $con->processOrder($orderData, $paymentMethod, $customerID, 'customer');
 
-    // Handle the result from the method
+   
     if ($result['success']) {
-        // On success, redirect to their personal transaction history page
+        
         header("Location: ../Customer/transactionrecords.php");
         ob_end_clean();
         exit;
     } else {
-        // On failure, log the error and redirect back with a generic error message
+      
         error_log("Customer Order Save Failed: " . $result['message']);
         header("Location: customerpage.php?error=order_failed");
         ob_end_clean();
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
 }
 
 
-// This part runs for the initial page load (GET request)
+
 $customer = isset($_SESSION['CustomerFN']) ? $_SESSION['CustomerFN'] : 'Guest';
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();

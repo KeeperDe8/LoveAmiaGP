@@ -1,19 +1,19 @@
 <?php
 session_start();
-ob_start(); // Start output buffering
+ob_start(); 
 
 if (!isset($_SESSION['CustomerID'])) {
-  header('Location: ../all/login.php'); // Path to login.php from Customer/
+  header('Location: ../all/login.php'); 
   ob_end_clean();
   exit();
 }
-require_once('../classes/database.php'); // Path to database class from Customer/
+require_once('../classes/database.php'); 
 $con = new database();
 
 $customerID = $_SESSION['CustomerID'];
-$customerFN = $_SESSION['CustomerFN'] ?? 'Customer'; // Get customer's first name for display
+$customerFN = $_SESSION['CustomerFN'] ?? 'Customer'; 
 
-// Fetch orders specifically for this customer ID
+
 $customerOrders = $con->getOrdersForCustomer($customerID);
 ?>
 <!DOCTYPE html>
@@ -27,25 +27,24 @@ $customerOrders = $con->getOrdersForCustomer($customerID);
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body { font-family: 'Inter', sans-serif; }
-    /* Adjust background image path relative to the new location of customer_tranlist.php */
-    /* If 'images' is in the LoveAmaiah/ root, path from 'Customer/' would be '../images/LAbg.png' */
+   
     body { background: url('../images/LAbg.png') no-repeat center center/cover; }
 
-    /* Custom scrollbar styles for order list containers */
+ 
     .overflow-y-auto::-webkit-scrollbar {
-        width: 8px; /* Width of the scrollbar */
+        width: 8px; 
     }
     .overflow-y-auto::-webkit-scrollbar-track {
-        background: rgba(200, 200, 200, 0.3); /* Color of the tracking area */
+        background: rgba(200, 200, 200, 0.3); 
         border-radius: 10px;
     }
     .overflow-y-auto::-webkit-scrollbar-thumb {
-        background-color: #C4A07A; /* Color of the scroll thumb */
-        border-radius: 10px; /* Roundness of the scroll thumb */
-        border: 2px solid rgba(255, 255, 255, 0.5); /* Creates padding around thumb */
+        background-color: #C4A07A;
+        border-radius: 10px; 
+        border: 2px solid rgba(255, 255, 255, 0.5); 
     }
     .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background-color: #a17850; /* Color of the scroll thumb on hover */
+        background-color: #a17850; 
     }
   </style>
 </head>

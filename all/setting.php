@@ -3,7 +3,7 @@ session_start();
 require_once('../classes/database.php');
 $con = new database();
 
-// Determine user type and ID from session
+
 $userType = '';
 $userID = null;
 
@@ -17,7 +17,7 @@ if (isset($_SESSION['CustomerID'])) {
     $userType = 'owner';
     $userID = $_SESSION['OwnerID'];
 } else {
-    // If no user is logged in, redirect to login page
+   
     header('Location: login.php');
     exit();
 }

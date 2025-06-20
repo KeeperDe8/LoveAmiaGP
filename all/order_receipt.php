@@ -4,7 +4,7 @@ session_start();
 $loggedInUserType = null;
 $loggedInID = null;
 
-// Determine if Owner or Employee is logged in
+
 if (isset($_SESSION['OwnerID'])) {
     $loggedInUserType = 'owner';
     $loggedInID = $_SESSION['OwnerID'];
@@ -12,7 +12,7 @@ if (isset($_SESSION['OwnerID'])) {
     $loggedInUserType = 'employee';
     $loggedInID = $_SESSION['EmployeeID'];
 } else {
-    // Neither owner nor employee is logged in, redirect to login
+   
     header('Location: login.php'); // login.php is in the same 'all' folder
     exit();
 }
@@ -50,14 +50,13 @@ if ($order) {
 }
 
 if (!$order || !$hasPermission) {
-    // Redirect if order not found or user lacks permission
-    // Determine redirect based on logged-in user type
+   
     if ($loggedInUserType == 'owner') {
-        header('Location: ../Owner/page.php?error=unauthorized_or_order_not_found'); // Redirect owner back to their order page
+        header('Location: ../Owner/page.php?error=unauthorized_or_order_not_found'); 
     } elseif ($loggedInUserType == 'employee') {
-        header('Location: ../Employee/employeepage.php?error=unauthorized_or_order_not_found'); // Redirect employee back to their order page
+        header('Location: ../Employee/employeepage.php?error=unauthorized_or_order_not_found'); 
     } else {
-        header('Location: login.php'); // Should not happen, but fallback
+        header('Location: login.php'); 
     }
     exit();
 }

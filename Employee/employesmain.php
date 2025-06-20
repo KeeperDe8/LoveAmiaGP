@@ -5,7 +5,7 @@
       header('Location: ../all/login.php');
       exit();
   }
-  // Show the employee's username if available, otherwise fallback to first name or "Employee"
+
   $employeeDisplay = isset($_SESSION['E_Username']) ? $_SESSION['E_Username'] : (isset($_SESSION['EmployeeFN']) ? $_SESSION['EmployeeFN'] : 'Employee');
   ?>
 
