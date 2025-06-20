@@ -4,24 +4,22 @@ session_start();
 require_once('../classes/database.php');
 $con = new database();
 
-$loggedInOwnerID = null;
 $ownerFirstName = 'Owner';
 
 // Check if an Owner is logged in
 if (isset($_SESSION['OwnerID'])) {
-    $loggedInOwnerID = $_SESSION['OwnerID'];
     $ownerFirstName = $_SESSION['OwnerFN']; 
 } else {
     header('Location: ../all/login.php');
     exit();
 }
 
-// Fetch all data for the dashboard cards and charts
-$totalSales = $con->getTotalSales($loggedInOwnerID, 30); 
-$totalOrders = $con->getTotalSystemOrders($loggedInOwnerID, 30); 
-$totalSalesTransactions = $con->getTotalSalesCount($loggedInOwnerID); // Correct total count
-$salesData = $con->getSalesData($loggedInOwnerID, 30); 
-$topProducts = $con->getTopProducts($loggedInOwnerID,  30); 
+// Fetch all data using the new SYSTEM-WIDE functions
+$totalSales = $con->getSystemTotalSales(30); 
+$totalOrders = $con->getSystemTotalOrders(30); 
+$totalSalesTransactions = $con->getSystemTotalTransactions();
+$salesData = $con->getSystemSalesData(30); 
+$topProducts = $con->getSystemTopProducts(30); 
 
 $topSellerName = 'N/A';
 if (!empty($topProducts['labels'][0])) {
@@ -37,7 +35,6 @@ if (!empty($topProducts['labels'][0])) {
     <title>LoveAmiah - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -62,7 +59,7 @@ if (!empty($topProducts['labels'][0])) {
         <header class="mb-6 flex justify-between items-center z-10">
             <div>
                 <p class="text-xs text-gray-700 mb-0.5">Welcome, <?= htmlspecialchars($ownerFirstName); ?></p>
-                <h1 class="text-[#4B2E0E] font-semibold text-2xl">Dashboard</h1>
+                <h1 class="text-[#4B2E0E] font-semibold text-2xl">System Dashboard</h1>
             </div>
             <div class="flex space-x-2">
                 <button id="refreshBtn" class="bg-[#C4A07A] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#a17850] transition shadow-md"><i class="fas fa-sync-alt mr-2"></i> Refresh</button>
@@ -84,7 +81,7 @@ if (!empty($topProducts['labels'][0])) {
             <div class="bg-white rounded-lg shadow-md p-4">
                 <h5 class="text-lg font-semibold text-gray-700">Total Transactions</h5>
                 <p class="text-3xl font-bold text-[#4B2E0E]"><?= htmlspecialchars($totalSalesTransactions); ?></p>
-                <small class="text-gray-500">Registered & Walk-ins</small>
+                <small class="text-gray-500">All Time</small>
             </div>
             <div class="bg-white rounded-lg shadow-md p-4">
                 <h5 class="text-lg font-semibold text-gray-700">Top Seller</h5>
@@ -108,41 +105,23 @@ if (!empty($topProducts['labels'][0])) {
                 datasets: [{
                     label: 'Sales',
                     data: <?php echo json_encode($salesData['data']); ?>,
-                    borderColor: '#C4A07A',
-                    backgroundColor: 'rgba(196, 160, 122, 0.2)',
-                    tension: 0.3,
-                    fill: true
+                    borderColor: '#C4A07A', backgroundColor: 'rgba(196, 160, 122, 0.2)',
+                    tension: 0.3, fill: true
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => '₱' + context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2 })
-                        }
-                    }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { tooltip: { callbacks: { label: (context) => '₱' + context.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2 }) } } },
                 scales: { y: { beginAtZero: true, ticks: { callback: (value) => '₱' + value.toLocaleString() } } }
             }
         });
-
         document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
         document.getElementById("logout-btn").addEventListener("click", () => {
             Swal.fire({
-                title: 'Log out?',
-                text: "Are you sure you want to log out?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#4B2E0E',
-                cancelButtonColor: '#d33',
+                title: 'Log out?', text: "Are you sure you want to log out?", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#4B2E0E', cancelButtonColor: '#d33',
                 confirmButtonText: 'Yes, log out'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "../all/logout.php";
-                }
-            });
+            }).then((result) => { if (result.isConfirmed) { window.location.href = "../all/logout.php"; } });
         });
     </script>
 </body>

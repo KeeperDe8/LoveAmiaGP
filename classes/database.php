@@ -3,13 +3,39 @@
 class database {
 
     function opencon() {
-        return new PDO(
-            'mysql:host=localhost;
-            dbname=amaihatest', 
-            username: 'root',
-            password: ''
-        );
+        return new PDO('mysql:host=localhost;dbname=amaihatest', 'root', '');
     }
+
+    // --- FINALIZED ORDER FETCHING LOGIC FOR TRANLIST.PHP ---
+    function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
+        $con = $this->opencon();
+        // THIS IS THE FIX: We remove the WHERE clause to fetch ALL orders for the business,
+        // regardless of which owner/employee is logged in. This provides a complete system view.
+        $sql = "
+            SELECT
+                o.OrderID, o.OrderDate, o.TotalAmount, os.UserTypeID, c.C_Username AS CustomerUsername,
+                e.EmployeeFN AS EmployeeFirstName, e.EmployeeLN AS EmployeeLastName,
+                ow.OwnerFN AS OwnerFirstName, ow.OwnerLN AS OwnerLastName,
+                p.PaymentMethod, p.ReferenceNo,
+                GROUP_CONCAT(CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', FORMAT(pp.UnitPrice, 2), ')') ORDER BY od.OrderDetailID SEPARATOR '; ') AS OrderItems
+            FROM orders o
+            JOIN ordersection os ON o.OrderSID = os.OrderSID
+            LEFT JOIN customer c ON os.CustomerID = c.CustomerID
+            LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
+            LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
+            LEFT JOIN payment p ON o.OrderID = p.OrderID
+            LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
+            LEFT JOIN product prod ON od.ProductID = prod.ProductID
+            LEFT JOIN productprices pp ON od.PriceID = pp.PriceID
+            GROUP BY o.OrderID 
+            ORDER BY o.OrderDate DESC
+        ";
+        $stmt = $con->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    // --- ALL OTHER FUNCTIONS ---
 
     public function archiveProduct($productID): bool {
         $con = $this->opencon();
@@ -79,17 +105,23 @@ class database {
         $ownerID = null; $employeeID = null; $customerID = null; $userTypeID = null; $referencePrefix = 'ORD';
         switch ($userType) {
             case 'owner':
-                $ownerID = $userID; $userTypeID = 1; $referencePrefix = 'LA';
+                $ownerID = $userID;
+                $userTypeID = 1;
+                $referencePrefix = 'LA';
                 break;
             case 'employee':
-                $employeeID = $userID; $ownerID = $this->getEmployeeOwnerID($employeeID);
-                if ($ownerID === null) return ['success' => false, 'message' => "Order failed: Could not find owner for this employee."];
-                $userTypeID = 2; $referencePrefix = 'EMP';
+                $employeeID = $userID;
+                $ownerID = $this->getEmployeeOwnerID($employeeID);
+                if ($ownerID === null) { return ['success' => false, 'message' => "Order failed: Employee not linked to an owner."]; }
+                $userTypeID = 2;
+                $referencePrefix = 'EMP';
                 break;
             case 'customer':
-                $customerID = $userID; $ownerID = $this->getAnyOwnerId(); 
-                if ($ownerID === null) return ['success' => false, 'message' => "Order failed: No owner account available."];
-                $userTypeID = 3; $referencePrefix = 'CUST';
+                $customerID = $userID;
+                $ownerID = $this->getAnyOwnerId(); 
+                if ($ownerID === null) { return ['success' => false, 'message' => "Order failed: No owner account is configured to handle orders."]; }
+                $userTypeID = 3;
+                $referencePrefix = 'CUST';
                 break;
             default:
                 return ['success' => false, 'message' => "Invalid user type."];
@@ -107,7 +139,7 @@ class database {
             foreach ($orderData as $item) {
                 $productID = intval(str_replace('product-', '', $item['id']));
                 $priceID = isset($item['price_id']) ? $item['price_id'] : null;
-                if ($priceID === null) throw new Exception("Price ID is missing for one or more items.");
+                if ($priceID === null) { throw new Exception("Price ID is missing."); }
                 $stmt = $db->prepare("INSERT INTO orderdetails (OrderID, ProductID, PriceID, Quantity, Subtotal) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$orderID, $productID, $priceID, $item['quantity'], $item['price'] * $item['quantity']]);
             }
@@ -116,7 +148,8 @@ class database {
             $db->commit();
             return ['success' => true, 'message' => 'Transaction successful!', 'order_id' => $orderID, 'ref_no' => $referenceNo];
         } catch (Exception $e) {
-            $db->rollBack(); error_log("Order Save Error: " . $e->getMessage());
+            $db->rollBack(); 
+            error_log("Order Save Error: " . $e->getMessage());
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
@@ -186,72 +219,6 @@ class database {
         $stmt = $con->prepare($sql);
         return $stmt->execute($params);
     }
-    
-    
-     function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
-        $con = $this->opencon();
-
-        $sql = "
-            SELECT
-                o.OrderID,
-                o.OrderDate,
-                o.TotalAmount,
-                os.UserTypeID,
-                c.C_Username AS CustomerUsername,
-                e.EmployeeFN AS EmployeeFirstName,
-                e.EmployeeLN AS EmployeeLastName,
-                ow.OwnerFN AS OwnerFirstName,
-                ow.OwnerLN AS OwnerLastName,
-                p.PaymentMethod,
-                p.ReferenceNo,
-                GROUP_CONCAT(
-                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
-                    ORDER BY od.OrderDetailID SEPARATOR '; '
-                ) AS OrderItems
-            FROM orders o
-            JOIN ordersection os ON o.OrderSID = os.OrderSID
-            LEFT JOIN customer c ON os.CustomerID = c.CustomerID
-            LEFT JOIN employee e ON os.EmployeeID = e.EmployeeID
-            LEFT JOIN owner ow ON os.OwnerID = ow.OwnerID
-            LEFT JOIN payment p ON o.OrderID = p.OrderID
-            LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
-            LEFT JOIN product prod ON od.ProductID = prod.ProductID
-        ";
-
-        $params = [];
-
-        if ($userType === 'owner') {
-            $sql .= " WHERE os.OwnerID = ? OR (os.UserTypeID = 3 AND os.CustomerID IS NOT NULL AND os.OwnerID IS NULL)";
-            $params[] = $loggedInID;
-            error_log("DEBUG: getOrdersForOwnerOrEmployee - Owner query for ID {$loggedInID} (including NULL OwnerID customer orders).");
-        } elseif ($userType === 'employee') {
-            $ownerID = $this->getEmployeeOwnerID($loggedInID);
-            if ($ownerID === null) {
-                error_log("DEBUG: getOrdersForOwnerOrEmployee - Employee with ID {$loggedInID} has no associated OwnerID. Returning empty array.");
-                return [];
-            }
-            $sql .= " WHERE (os.EmployeeID = ? OR os.OwnerID = ? OR (os.CustomerID IS NOT NULL AND os.OwnerID = ?) OR (os.UserTypeID = 3 AND os.CustomerID IS NOT NULL AND os.OwnerID IS NULL))";
-            $params[] = $loggedInID;
-            $params[] = $ownerID;
-            $params[] = $ownerID;
-            error_log("DEBUG: getOrdersForOwnerOrEmployee - Employee query for EmployeeID {$loggedInID} and OwnerID {$ownerID} (including NULL OwnerID customer orders).");
-        } else {
-            error_log("DEBUG: getOrdersForOwnerOrEmployee - Unknown user type: {$userType}. Returning empty array.");
-            return [];
-        }
-
-        $sql .= " GROUP BY o.OrderID ORDER BY o.OrderDate DESC";
-
-        error_log("DEBUG: getOrdersForOwnerOrEmployee - Final SQL: " . $sql);
-        error_log("DEBUG: getOrdersForOwnerOrEmployee - Final Params: " . print_r($params, true));
-
-        $stmt = $con->prepare($sql);
-        $stmt->execute($params);
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        error_log("DEBUG: getOrdersForOwnerOrEmployee - Fetched " . count($result) . " rows.");
-        return $result;
-    }
-    
 
     function signupCustomer($firstname, $lastname, $phonenum, $email, $username, $password) {
         $con = $this->opencon();
@@ -263,8 +230,7 @@ class database {
             $con->commit();
             return $userID;
         } catch (PDOException $e) {
-            $con->rollBack();
-            return false;
+            $con->rollBack(); return false;
         }
     }
 
@@ -323,8 +289,7 @@ class database {
             $con->commit();
             return $userID;
         } catch (PDOException $e) {
-            $con->rollBack();
-            error_log("AddEmployee Error: " . $e->getMessage());
+            $con->rollBack(); error_log("AddEmployee Error: " . $e->getMessage());
             return false;
         }
     }
@@ -353,8 +318,7 @@ class database {
             $con->commit();
             return $productID;
         } catch (PDOException $e) {
-            $con->rollBack();
-            error_log("AddProduct Error: " . $e->getMessage());
+            $con->rollBack(); error_log("AddProduct Error: " . $e->getMessage());
             return false;
         }
     }
@@ -397,44 +361,15 @@ class database {
         }
     }
 
-  function getFullOrderDetails($orderID, $referenceNo) {
+    function getFullOrderDetails($orderID, $referenceNo) {
         $con = $this->opencon();
-        
-        $stmt = $con->prepare("
-            SELECT
-                o.OrderID,
-                o.OrderDate,
-                o.TotalAmount,
-                os.UserTypeID,
-                os.CustomerID,
-                os.EmployeeID,
-                os.OwnerID,
-                p.PaymentMethod,
-                p.ReferenceNo,
-                p.PaymentStatus
-            FROM orders o
-            JOIN ordersection os ON o.OrderSID = os.OrderSID
-            LEFT JOIN payment p ON o.OrderID = p.OrderID
-            WHERE o.OrderID = ? AND p.ReferenceNo = ?
-        ");
+        $stmt = $con->prepare("SELECT o.OrderID, o.OrderDate, o.TotalAmount, os.UserTypeID, os.CustomerID, os.EmployeeID, os.OwnerID, p.PaymentMethod, p.ReferenceNo, p.PaymentStatus FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID LEFT JOIN payment p ON o.OrderID = p.OrderID WHERE o.OrderID = ? AND p.ReferenceNo = ?");
         $stmt->execute([$orderID, $referenceNo]);
         $orderHeader = $stmt->fetch(PDO::FETCH_ASSOC);
-
         if ($orderHeader) {
-            $stmtDetails = $con->prepare("
-                SELECT
-                    od.Quantity,
-                    od.Subtotal,
-                    prod.ProductName,
-                    pp.UnitPrice
-                FROM orderdetails od
-                JOIN product prod ON od.ProductID = prod.ProductID
-                JOIN productprices pp ON od.PriceID = pp.PriceID
-                WHERE od.OrderID = ?
-            ");
+            $stmtDetails = $con->prepare("SELECT od.Quantity, od.Subtotal, prod.ProductName, pp.UnitPrice FROM orderdetails od JOIN product prod ON od.ProductID = prod.ProductID JOIN productprices pp ON od.PriceID = pp.PriceID WHERE od.OrderID = ?");
             $stmtDetails->execute([$orderID]);
             $orderDetails = $stmtDetails->fetchAll(PDO::FETCH_ASSOC);
-
             $orderHeader['Details'] = $orderDetails;
             return $orderHeader;
         }
@@ -461,26 +396,19 @@ class database {
             return null;
         }
     }
-
-
-       function getOrdersForCustomer($customerID) {
+    
+    function getOrdersForCustomer($customerID) {
         $con = $this->opencon();
         $stmt = $con->prepare("
             SELECT
-                o.OrderID,
-                o.OrderDate,
-                o.TotalAmount,
-                p.PaymentMethod,
-                p.ReferenceNo,
-                GROUP_CONCAT(
-                    CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', od.Subtotal, ')')
-                    ORDER BY od.OrderDetailID SEPARATOR '; '
-                ) AS OrderItems
+                o.OrderID, o.OrderDate, o.TotalAmount, p.PaymentMethod, p.ReferenceNo,
+                GROUP_CONCAT(CONCAT(prod.ProductName, ' x', od.Quantity, ' (₱', FORMAT(pp.UnitPrice, 2), ')') ORDER BY od.OrderDetailID SEPARATOR '; ') AS OrderItems
             FROM orders o
             JOIN ordersection os ON o.OrderSID = os.OrderSID
             LEFT JOIN payment p ON o.OrderID = p.OrderID
             LEFT JOIN orderdetails od ON o.OrderID = od.OrderID
             LEFT JOIN product prod ON od.ProductID = prod.ProductID
+            LEFT JOIN productprices pp ON od.PriceID = pp.PriceID
             WHERE os.CustomerID = ?
             GROUP BY o.OrderID
             ORDER BY o.OrderDate DESC
@@ -489,45 +417,33 @@ class database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-
-
-     public function getTotalSalesCount($ownerID): int {
+     public function getSystemTotalSales($days) {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT COUNT(o.OrderID) FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID WHERE os.OwnerID = ?");
-        $stmt->execute([$ownerID]);
-        return (int)$stmt->fetchColumn();
-    }
-    
-    // This is the old function, we keep it in case it's used elsewhere, but the dashboard will use the one above.
-    public function getCustomerCount($ownerID): int {
-        $con = $this->opencon();
-        // This query just counts registered customers. We will use getTotalSalesCount on the dashboard.
-        $stmt = $con->prepare("SELECT COUNT(CustomerID) FROM customer");
-        $stmt->execute();
-        return (int)$stmt->fetchColumn();
-    }
-
-    public function getTotalSales($ownerID, $days) {
-        $con = $this->opencon();
-        $stmt = $con->prepare("SELECT SUM(o.TotalAmount) FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID WHERE os.OwnerID = ? AND o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
-        $stmt->execute([$ownerID, $days]);
+        $stmt = $con->prepare("SELECT SUM(TotalAmount) FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
+        $stmt->execute([$days]);
         return (float)$stmt->fetchColumn();
     }
     
-    public function getTotalSystemOrders($ownerID, $days) {
+    public function getSystemTotalOrders($days) {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT COUNT(o.OrderID) FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID WHERE os.OwnerID = ? AND o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
-        $stmt->execute([$ownerID, $days]);
+        $stmt = $con->prepare("SELECT COUNT(OrderID) FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
+        $stmt->execute([$days]);
         return (int)$stmt->fetchColumn();
     }
     
-    public function getSalesData($ownerID, $days) {
+    public function getSystemTotalTransactions() {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT DATE(OrderDate) as date, SUM(TotalAmount) as total FROM orders o JOIN ordersection os ON o.OrderSID = os.OrderSID WHERE os.OwnerID = ? AND o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(OrderDate) ORDER BY date ASC");
-        $stmt->execute([$ownerID, $days]);
+        $stmt = $con->prepare("SELECT COUNT(OrderID) FROM orders");
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+    
+    public function getSystemSalesData($days) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT DATE(OrderDate) as date, SUM(TotalAmount) as total FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(OrderDate) ORDER BY date ASC");
+        $stmt->execute([$days]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $labels = [];
-        $data = [];
+        $labels = []; $data = [];
         foreach($results as $row) {
             $labels[] = date("M d", strtotime($row['date']));
             $data[] = $row['total'];
@@ -535,20 +451,16 @@ class database {
         return ['labels' => $labels, 'data' => $data];
     }
     
-    public function getTopProducts($ownerID, $days) {
+    public function getSystemTopProducts($days) {
         $con = $this->opencon();
-        $stmt = $con->prepare("SELECT p.ProductName, SUM(od.Quantity) as total_quantity FROM orderdetails od JOIN product p ON od.ProductID = p.ProductID JOIN orders o ON od.OrderID = o.OrderID JOIN ordersection os ON o.OrderSID = os.OrderSID WHERE os.OwnerID = ? AND o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY p.ProductID, p.ProductName ORDER BY total_quantity DESC LIMIT 5");
-        $stmt->execute([$ownerID, $days]);
+        $stmt = $con->prepare("SELECT p.ProductName, SUM(od.Quantity) as total_quantity FROM orderdetails od JOIN product p ON od.ProductID = p.ProductID JOIN orders o ON od.OrderID = o.OrderID WHERE o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY p.ProductID, p.ProductName ORDER BY total_quantity DESC LIMIT 5");
+        $stmt->execute([$days]);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $labels = [];
-        $data = [];
+        $labels = []; $data = [];
         foreach($results as $row) {
             $labels[] = $row['ProductName'];
             $data[] = $row['total_quantity'];
         }
         return ['labels' => $labels, 'data' => $data];
     }
-
-
-
 }
