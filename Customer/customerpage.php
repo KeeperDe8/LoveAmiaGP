@@ -334,7 +334,7 @@ echo json_encode(array_map(function($p) {
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "../all/logout.php";
+         window.location.href = "../all/coffee.php";
        }
      });
    });
