@@ -5,11 +5,17 @@ header("Pragma: no-cache"); // HTTP 1.0.
 header("Expires: 0");
 
 session_start();
-if (!isset($_SESSION['CustomerID'])) {
-  header('Location: ../all/login.php');
-  exit();
-}
 
+
+
+if (!isset($_SESSION['CustomerID'])) {
+
+  if (!(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')) {
+      header('Location: ../all/coffee.php');
+      ob_end_clean(); 
+      exit();
+  }
+}
 
 
 $customer = $_SESSION['CustomerFN'];
@@ -271,7 +277,7 @@ $customer = $_SESSION['CustomerFN'];
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "../all/coffee.php";
+         window.location.href = "../all/logoutcos.php";
        }
      });
    });

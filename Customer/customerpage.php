@@ -8,9 +8,12 @@ session_start();
 ob_start();
 
 if (!isset($_SESSION['CustomerID'])) {
-  header('Location: ../all/login.php');
-  ob_end_clean();
-  exit();
+
+  if (!(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')) {
+      header('Location: ../all/coffee.php');
+      ob_end_clean(); 
+      exit();
+  }
 }
 
 require_once('../classes/database.php');
@@ -331,7 +334,7 @@ echo json_encode(array_map(function($p) {
        cancelButtonText: 'Cancel'
      }).then((result) => {
        if (result.isConfirmed) {
-         window.location.href = "../all/coffee.php";
+         window.location.href = "../all/logoutcos.php";
        }
      });
    });
