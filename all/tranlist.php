@@ -1,13 +1,6 @@
 <?php
 session_start();
-ob_start(); // Start output buffering
 
-// --- Temporarily enable full error reporting for debugging ---
-// REMOVE THESE LINES IN PRODUCTION TO PREVENT SENSITIVE INFORMATION LEAKS
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-// --- End temporary debugging setup ---
 
 $loggedInUserType = null;
 $loggedInID = null;
@@ -22,37 +15,26 @@ if (isset($_SESSION['OwnerID'])) {
     error_log("DEBUG: tranlist.php - Logged in as Employee with ID: " . $loggedInID);
 } else {
     error_log("ERROR: tranlist.php - No OwnerID or EmployeeID in session. Redirecting to login.");
-    header('Location: login.php'); // login.php is in the same 'all' folder
-    ob_end_clean();
+    header('Location: login.php');
     exit();
 }
 
-require_once('../classes/database.php'); // Path from 'all/' to 'classes/'
+require_once('../classes/database.php');
 $con = new database();
 
-// Fetch all orders associated with this owner's business or this employee
-// This function in database.php is designed to get all relevant orders for the business.
 $allOrders = $con->getOrdersForOwnerOrEmployee($loggedInID, $loggedInUserType);
 error_log("DEBUG: tranlist.php - getOrdersForOwnerOrEmployee returned " . count($allOrders) . " orders.");
-// It's helpful to dump the raw data to your PHP error log to see exactly what's fetched.
-// REMOVE THIS LINE IN PRODUCTION!
 error_log("DEBUG: tranlist.php - Raw fetched orders array: " . print_r($allOrders, true));
 
 
 $customerAccountOrders = [];
 $walkinStaffOrders = [];
 
-// Categorize orders based on UserTypeID and whether a CustomerUsername is explicitly linked
-foreach ($allOrders as $transaction) { // Using $transaction for clarity within the loop
-    // UserTypeID 3 is for customers. If CustomerUsername is present, it's a registered customer order.
+foreach ($allOrders as $transaction) { 
+
     if ($transaction['UserTypeID'] == 3 && !empty($transaction['CustomerUsername'])) {
         $customerAccountOrders[] = $transaction;
     } else {
-        // This category includes orders placed by:
-        // - Owners (UserTypeID 1)
-        // - Employees (UserTypeID 2)
-        // - Customers who might have placed an order without a registered account (e.g., 'guest' or 'walk-in' types)
-        //   In this case, UserTypeID would be 3, but CustomerUsername would be empty/null from the LEFT JOIN.
         $walkinStaffOrders[] = $transaction;
     }
 }
@@ -74,7 +56,6 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
     body { font-family: 'Inter', sans-serif; }
     body { background: url('../images/LAbg.png') no-repeat center center/cover; }
     
-    /* Custom scrollbar styles for order list containers */
     .overflow-y-auto::-webkit-scrollbar {
         width: 8px;
     }
@@ -94,8 +75,7 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
   <div class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-8 shadow-lg max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-    
-    <!-- Customer Account Orders Box (Left Column on md screens and up) -->
+
     <div>
       <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
         <i class="fas fa-user-check"></i> Customer Account Orders
@@ -129,7 +109,6 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
       <?php endif; ?>
     </div>
 
-    <!-- Walk-in/Staff-Assisted Orders Box (Right Column on md screens and up) -->
     <div>
       <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
         <i class="fas fa-walking"></i> Walk-in/Staff-Assisted Orders
@@ -144,18 +123,16 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
                 <p class="text-xs text-gray-600 mb-2">
                     Placed by: 
                     <?php
-                        // Check UserTypeID to determine who placed the order and display relevant name
-                        if ($transaction['UserTypeID'] == 1) { // Owner order
-                            // Use null-coalescing operator (??) to safely get names, default to empty string
+                        if ($transaction['UserTypeID'] == 1) {
                             $ownerName = trim((string)($transaction['OwnerFirstName'] ?? '') . ' ' . (string)($transaction['OwnerLastName'] ?? ''));
-                            echo htmlspecialchars($ownerName ?: 'Owner') . ' (Owner)'; // Display 'Owner' if name is empty
-                        } elseif ($transaction['UserTypeID'] == 2) { // Employee order
+                            echo htmlspecialchars($ownerName ?: 'Owner') . ' (Owner)'; 
+                        } elseif ($transaction['UserTypeID'] == 2) { 
                             $employeeName = trim((string)($transaction['EmployeeFirstName'] ?? '') . ' ' . (string)($transaction['EmployeeLastName'] ?? ''));
-                            echo htmlspecialchars($employeeName ?: 'Employee') . ' (Employee)'; // Display 'Employee' if name is empty
-                        } elseif ($transaction['UserTypeID'] == 3) { // Customer order, but not from a registered username (categorized as walk-in here)
+                            echo htmlspecialchars($employeeName ?: 'Employee') . ' (Employee)'; 
+                        } elseif ($transaction['UserTypeID'] == 3) {
                             echo 'Walk-in (Customer)'; 
                         } else {
-                            echo 'Guest/Unknown'; // Fallback for any other unexpected UserTypeID
+                            echo 'Guest/Unknown'; 
                         }
                     ?><br>
                     Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($transaction['OrderDate']))) ?>
@@ -181,7 +158,6 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
   </div>
   
   <div class="mt-6 flex justify-center w-full max-w-4xl">
-      <!-- Back button logic depends on who is logged in -->
       <?php if ($loggedInUserType === 'owner'): ?>
           <a href="../Owner/mainpage.php" class="bg-[#4B2E0E] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6b3e14] transition shadow-md">Back to Main Menu</a>
       <?php elseif ($loggedInUserType === 'employee'): ?>
