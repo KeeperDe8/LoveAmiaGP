@@ -1,4 +1,9 @@
 <?php
+
+header("Cache-Control: no-cache, no-store, must-revalidate"); // HTTP 1.1.
+header("Pragma: no-cache"); // HTTP 1.0.
+header("Expires: 0");
+
 session_start();
 ob_start();
 
@@ -11,31 +16,24 @@ if (!isset($_SESSION['CustomerID'])) {
 require_once('../classes/database.php');
 $con = new database();
 
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
-    
-   
     if (!isset($_SESSION['CustomerID'])) {
         header('Location: ../all/login.php?error=session_expired');
         ob_end_clean();
         exit();
     }
-    
+
     $orderData = json_decode($_POST['orderData'], true);
     $paymentMethod = isset($_POST['paymentMethod']) ? $_POST['paymentMethod'] : 'gcash';
     $customerID = $_SESSION['CustomerID'];
 
-   
     $result = $con->processOrder($orderData, $paymentMethod, $customerID, 'customer');
 
-   
     if ($result['success']) {
-        
         header("Location: ../Customer/transactionrecords.php");
         ob_end_clean();
         exit;
     } else {
-      
         error_log("Customer Order Save Failed: " . $result['message']);
         header("Location: customerpage.php?error=order_failed");
         ob_end_clean();
@@ -43,13 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     }
 }
 
-
-
 $customer = isset($_SESSION['CustomerFN']) ? $_SESSION['CustomerFN'] : 'Guest';
 $products = $con->getAllProductsWithPrice();
 $categories = $con->getAllCategories();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,30 +52,32 @@ $categories = $con->getAllCategories();
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>Customer Order Page</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body { font-family: 'Inter', sans-serif; }
     #menu-scroll::-webkit-scrollbar { width: 6px; }
     #menu-scroll::-webkit-scrollbar-thumb { background-color: #c4b09a; border-radius: 10px; }
- 
-      @media (min-width: 1024px) {
-    #menu-items {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+    @media (min-width: 1024px) {
+      #menu-items { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
-  }
   </style>
 </head>
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
-<!-- Sidebar -->
+  <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='advertisement.php'"><i class="fas fa-home"></i></button>
-   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='customerpage.php'"><i class="fas fa-shopping-cart"></i></button>
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Order List" type="button" onclick="window.location='transactionrecords.php'"><i class="fas fa-list"></i></button> <!-- LINK TO CUSTOMER'S OWN TRANSACTIONS -->
-   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='../all/setting.php'"><i class="fas fa-cog"></i></button>
-   <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
+    <img src="../images/logo.png" alt="Logo" style="width: 56px; height: 56px; border-radius: 9999px; margin-bottom: 25px;" />
+    <button title="Home" onclick="window.location='advertisement.php'"><i class="fas fa-home text-xl text-[#4B2E0E]"></i></button>
+    <button title="Cart" onclick="window.location='customerpage.php'"><i class="fas fa-shopping-cart text-xl text-[#4B2E0E]"></i></button>
+    <button title="Order List" onclick="window.location='transactionrecords.php'"><i class="fas fa-list text-xl text-[#4B2E0E]"></i></button>
+    <button title="Settings" onclick="window.location='../all/setting.php'"><i class="fas fa-cog text-xl text-[#4B2E0E]"></i></button>
+    <button id="logout-btn" title="Logout"><i class="fas fa-sign-out-alt text-xl text-[#4B2E0E]"></i></button>
   </aside>
+
+  <!-- Main content -->
+  <!-- (The rest of your existing <main> and <script> content remains unchanged below this line) -->
+
  
  
   <!-- Main content -->
