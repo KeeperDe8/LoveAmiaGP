@@ -6,11 +6,9 @@ class database {
         return new PDO('mysql:host=localhost;dbname=amaihatest', 'root', '');
     }
 
-    // --- FINALIZED ORDER FETCHING LOGIC FOR TRANLIST.PHP ---
     function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
         $con = $this->opencon();
-        // THIS IS THE FIX: We remove the WHERE clause to fetch ALL orders for the business,
-        // regardless of which owner/employee is logged in. This provides a complete system view.
+
         $sql = "
             SELECT
                 o.OrderID, o.OrderDate, o.TotalAmount, os.UserTypeID, c.C_Username AS CustomerUsername,
@@ -37,7 +35,7 @@ class database {
     
     // --- ALL OTHER FUNCTIONS ---
 
-    public function archiveProduct($productID): bool {
+     function archiveProduct($productID): bool {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("UPDATE product SET is_available = 0 WHERE ProductID = ?");
@@ -48,7 +46,7 @@ class database {
         }
     }
 
-    public function restoreProduct($productID): bool {
+    function restoreProduct($productID): bool {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("UPDATE product SET is_available = 1 WHERE ProductID = ?");
@@ -59,7 +57,7 @@ class database {
         }
     }
 
-    public function archiveEmployee($employeeID): bool {
+    function archiveEmployee($employeeID): bool {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("UPDATE employee SET is_active = 0 WHERE EmployeeID = ?");
@@ -70,7 +68,7 @@ class database {
         }
     }
 
-    public function restoreEmployee($employeeID): bool {
+    function restoreEmployee($employeeID): bool {
         $con = $this->opencon();
         try {
             $stmt = $con->prepare("UPDATE employee SET is_active = 1 WHERE EmployeeID = ?");
@@ -100,7 +98,7 @@ class database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function processOrder($orderData, $paymentMethod, $userID, $userType) {
+    function processOrder($orderData, $paymentMethod, $userID, $userType) {
         $db = $this->opencon();
         $ownerID = null; $employeeID = null; $customerID = null; $userTypeID = null; $referencePrefix = 'ORD';
         switch ($userType) {
@@ -144,7 +142,7 @@ class database {
                 $stmt->execute([$orderID, $productID, $priceID, $item['quantity'], $item['price'] * $item['quantity']]);
             }
             $referenceNo = strtoupper($referencePrefix . uniqid() . mt_rand(1000, 9999));
-            $this->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 0);
+            $this->addPaymentRecord($db, $orderID, $paymentMethod, $totalAmount, $referenceNo, 1);
             $db->commit();
             return ['success' => true, 'message' => 'Transaction successful!', 'order_id' => $orderID, 'ref_no' => $referenceNo];
         } catch (Exception $e) {
@@ -154,7 +152,7 @@ class database {
         }
     }
     
-    public function getUserData($userID, $userType) {
+    function getUserData($userID, $userType) {
         $con = $this->opencon();
         $sql = ''; $fieldMap = [];
         switch ($userType) {
@@ -183,9 +181,10 @@ class database {
         return $standardizedData;
     }
 
-    public function updateUserData($userID, $userType, $data) {
+       public function updateUserData($userID, $userType, $data) {
         $con = $this->opencon();
         $table = ''; $idColumn = ''; $fieldMap = [];
+
         switch ($userType) {
             case 'customer':
                 $table = 'customer'; $idColumn = 'CustomerID';
@@ -199,8 +198,10 @@ class database {
                 $table = 'owner'; $idColumn = 'OwnerID';
                 $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'O_Password'];
                 break;
-            default: return false;
+            default:
+                return ['success' => false, 'message' => 'Invalid user type.'];
         }
+
         $sqlParts = []; $params = [];
         $map = ['username', 'name', 'email', 'phone'];
         foreach($map as $key) {
@@ -209,15 +210,40 @@ class database {
                 $params[] = $data[$key];
             }
         }
-        if (!empty($data['password'])) {
+        
+      
+        if (!empty($data['new_password'])) {
+            
+            
+            if (empty($data['current_password'])) {
+                return ['success' => false, 'message' => 'To set a new password, you must provide your current password.'];
+            }
+
+            $stmt_check = $con->prepare("SELECT `{$fieldMap['password']}` FROM `{$table}` WHERE `{$idColumn}` = ?");
+            $stmt_check->execute([$userID]);
+            $user = $stmt_check->fetch(PDO::FETCH_ASSOC);
+
+            if (!$user || !password_verify($data['current_password'], $user[$fieldMap['password']])) {
+                return ['success' => false, 'message' => 'Incorrect current password. Password was not changed.'];
+            }
+
             $sqlParts[] = "`{$fieldMap['password']}` = ?";
-            $params[] = password_hash($data['password'], PASSWORD_DEFAULT);
+            $params[] = password_hash($data['new_password'], PASSWORD_DEFAULT);
         }
-        if (empty($sqlParts)) { return false; }
+
+        if (empty($sqlParts)) {
+            return ['success' => true, 'message' => 'No changes were made.'];
+        }
+
         $sql = "UPDATE `{$table}` SET " . implode(', ', $sqlParts) . " WHERE `{$idColumn}` = ?";
         $params[] = $userID;
         $stmt = $con->prepare($sql);
-        return $stmt->execute($params);
+        
+        if ($stmt->execute($params)) {
+             return ['success' => true, 'message' => 'Profile updated successfully!'];
+        } else {
+             return ['success' => false, 'message' => 'An error occurred while updating the profile.'];
+        }
     }
 
     function signupCustomer($firstname, $lastname, $phonenum, $email, $username, $password) {
@@ -351,7 +377,7 @@ class database {
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 0): bool {
+    function addPaymentRecord(PDO $pdo, $orderID, $paymentMethod, $paymentAmount, $referenceNo, $paymentStatus = 1): bool {
         try {
             $stmt = $pdo->prepare("INSERT INTO payment (OrderID, PaymentMethod, PaymentAmount, PaymentStatus, ReferenceNo) VALUES (?, ?, ?, ?, ?)");
             return $stmt->execute([$orderID, $paymentMethod, $paymentAmount, $paymentStatus, $referenceNo]);
@@ -417,28 +443,28 @@ class database {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-     public function getSystemTotalSales($days) {
+     function getSystemTotalSales($days) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT SUM(TotalAmount) FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
         $stmt->execute([$days]);
         return (float)$stmt->fetchColumn();
     }
     
-    public function getSystemTotalOrders($days) {
+    function getSystemTotalOrders($days) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT COUNT(OrderID) FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY)");
         $stmt->execute([$days]);
         return (int)$stmt->fetchColumn();
     }
     
-    public function getSystemTotalTransactions() {
+    function getSystemTotalTransactions() {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT COUNT(OrderID) FROM orders");
         $stmt->execute();
         return (int)$stmt->fetchColumn();
     }
-    
-    public function getSystemSalesData($days) {
+
+    function getSystemSalesData($days) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT DATE(OrderDate) as date, SUM(TotalAmount) as total FROM orders WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY DATE(OrderDate) ORDER BY date ASC");
         $stmt->execute([$days]);
@@ -451,7 +477,7 @@ class database {
         return ['labels' => $labels, 'data' => $data];
     }
     
-    public function getSystemTopProducts($days) {
+     function getSystemTopProducts($days) {
         $con = $this->opencon();
         $stmt = $con->prepare("SELECT p.ProductName, SUM(od.Quantity) as total_quantity FROM orderdetails od JOIN product p ON od.ProductID = p.ProductID JOIN orders o ON od.OrderID = o.OrderID WHERE o.OrderDate >= DATE_SUB(NOW(), INTERVAL ? DAY) GROUP BY p.ProductID, p.ProductName ORDER BY total_quantity DESC LIMIT 5");
         $stmt->execute([$days]);
@@ -463,4 +489,6 @@ class database {
         }
         return ['labels' => $labels, 'data' => $data];
     }
+    
+ 
 }

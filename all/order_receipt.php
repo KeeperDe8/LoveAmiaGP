@@ -13,11 +13,11 @@ if (isset($_SESSION['OwnerID'])) {
     $loggedInID = $_SESSION['EmployeeID'];
 } else {
    
-    header('Location: login.php'); // login.php is in the same 'all' folder
+    header('Location: login.php'); 
     exit();
 }
 
-require_once('../classes/database.php'); // Path from 'all/' to 'classes/'
+require_once('../classes/database.php'); 
 $con = new database();
 
 $orderID = $_GET['order_id'] ?? null;
@@ -28,20 +28,19 @@ if ($orderID && $referenceNo) {
     $order = $con->getFullOrderDetails($orderID, $referenceNo);
 }
 
-// Access control: Check if the logged-in user has permission to view this order
+// Access control
 $hasPermission = false;
 if ($order) {
     if ($loggedInUserType == 'owner' && $order['OwnerID'] == $loggedInID) {
-        // Owner can view orders directly associated with their OwnerID
         $hasPermission = true;
     } elseif ($loggedInUserType == 'employee') {
         
         $employeeOwnerID = $con->getEmployeeOwnerID($loggedInID);
         if ($employeeOwnerID !== null) {
             if (
-                ($order['EmployeeID'] !== null && $order['EmployeeID'] == $loggedInID) || // Order placed by this specific employee
-                ($order['OwnerID'] !== null && $order['OwnerID'] == $employeeOwnerID && $order['UserTypeID'] == 3) || // Customer order under employee's owner
-                ($order['OwnerID'] !== null && $order['OwnerID'] == $employeeOwnerID && $order['UserTypeID'] == 1) // Owner's direct order
+                ($order['EmployeeID'] !== null && $order['EmployeeID'] == $loggedInID) || 
+                ($order['OwnerID'] !== null && $order['OwnerID'] == $employeeOwnerID && $order['UserTypeID'] == 3) || 
+                ($order['OwnerID'] !== null && $order['OwnerID'] == $employeeOwnerID && $order['UserTypeID'] == 1) 
             ) {
                 $hasPermission = true;
             }
@@ -111,7 +110,6 @@ if (!$order || !$hasPermission) {
     </div>
 
     <div class="mt-8 text-center">
-        <!-- Back to appropriate main page based on user type -->
         <?php if ($loggedInUserType == 'owner'): ?>
             <button onclick="window.location.href='../Owner/mainpage.php'" class="bg-[#4B2E0E] text-white rounded-full py-2 px-6 font-semibold hover:bg-[#6b3e14] transition">
                 Back to Owner Menu

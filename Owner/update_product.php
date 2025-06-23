@@ -1,19 +1,13 @@
 <?php
 
-ob_start();
-
 session_start();
 
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 
 if (!isset($_SESSION['OwnerID'])) {
     error_log("Unauthorized access attempt to update_product.php. Session: " . print_r($_SESSION, true));
-    http_response_code(403); // Forbidden
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized access.']);
-    ob_end_flush();
     exit();
 }
 
@@ -55,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Validation failed in update_product.php: " . implode(" ", $validationMessages));
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid or missing data for update. Details: ' . implode(" ", $validationMessages)]);
-        ob_end_flush();
         exit();
     }
 
@@ -72,5 +65,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']);
 }
-
-ob_end_flush(); 

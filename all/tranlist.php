@@ -8,13 +8,10 @@ $loggedInID = null;
 if (isset($_SESSION['OwnerID'])) {
     $loggedInUserType = 'owner';
     $loggedInID = $_SESSION['OwnerID'];
-    error_log("DEBUG: tranlist.php - Logged in as Owner with ID: " . $loggedInID);
 } elseif (isset($_SESSION['EmployeeID'])) {
     $loggedInUserType = 'employee';
     $loggedInID = $_SESSION['EmployeeID'];
-    error_log("DEBUG: tranlist.php - Logged in as Employee with ID: " . $loggedInID);
 } else {
-    error_log("ERROR: tranlist.php - No OwnerID or EmployeeID in session. Redirecting to login.");
     header('Location: login.php');
     exit();
 }
@@ -23,25 +20,17 @@ require_once('../classes/database.php');
 $con = new database();
 
 $allOrders = $con->getOrdersForOwnerOrEmployee($loggedInID, $loggedInUserType);
-error_log("DEBUG: tranlist.php - getOrdersForOwnerOrEmployee returned " . count($allOrders) . " orders.");
-error_log("DEBUG: tranlist.php - Raw fetched orders array: " . print_r($allOrders, true));
-
 
 $customerAccountOrders = [];
 $walkinStaffOrders = [];
 
-foreach ($allOrders as $transaction) { 
-
+foreach ($allOrders as $transaction) {
     if ($transaction['UserTypeID'] == 3 && !empty($transaction['CustomerUsername'])) {
         $customerAccountOrders[] = $transaction;
     } else {
         $walkinStaffOrders[] = $transaction;
     }
 }
-
-error_log("DEBUG: tranlist.php - Categorized customerAccountOrders count: " . count($customerAccountOrders));
-error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count($walkinStaffOrders));
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,137 +39,333 @@ error_log("DEBUG: tranlist.php - Categorized walkinStaffOrders count: " . count(
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Transaction Records</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    body { background: url('../images/LAbg.png') no-repeat center center/cover; }
-    
-    .overflow-y-auto::-webkit-scrollbar {
-        width: 8px;
+    body {
+        font-family: 'Inter', sans-serif;
+        background: url('../images/LAbg.png') no-repeat center center/cover;
     }
-    .overflow-y-auto::-webkit-scrollbar-track {
-        background: rgba(200, 200, 200, 0.3);
-        border-radius: 10px;
+    .main-content {
+        flex-grow: 1;
+        padding: 1rem;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        width: 100%;
     }
-    .overflow-y-auto::-webkit-scrollbar-thumb {
-        background-color: #C4A07A;
-        border-radius: 10px;
-        border: 2px solid rgba(255, 255, 255, 0.5);
+    .main-content .bg-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.2;
+        z-index: -10;
     }
-    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-        background-color: #a17850;
+    .flex-wrapper {
+        flex-grow: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        padding: 1rem;
+    }
+    .order-section {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        height: calc(100vh - 150px);
+        overflow: hidden;
+    }
+    .order-list-wrapper {
+        overflow-y: auto;
+        flex-grow: 1;
+        margin-bottom: 3.5rem;
+    }
+    .pagination-bar {
+        position: absolute;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
-  <div class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-8 shadow-lg max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+<!---Sidebar -->
+<body class="min-h-screen flex">
+<?php if ($loggedInUserType == 'owner'): ?>
+<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+    <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+    <?php $current = basename($_SERVER['PHP_SELF']); ?>   
+    <button title="Dashboard" onclick="window.location.href='../Owner/dashboard.php'">
+        <i class="fas fa-chart-line text-xl <?= $current == 'dashboard.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Home" onclick="window.location.href='../Owner/mainpage.php'">
+        <i class="fas fa-home text-xl <?= $current == 'mainpage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Orders" onclick="window.location.href='../Owner/page.php'">
+        <i class="fas fa-shopping-cart text-xl <?= $current == 'page.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Order List" onclick="window.location.href='../all/tranlist.php'">
+        <i class="fas fa-list text-xl <?= $current == 'tranlist.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Inventory" onclick="window.location.href='../Owner/product.php'">
+        <i class="fas fa-box text-xl <?= $current == 'product.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Users" onclick="window.location.href='../Owner/user.php'">
+        <i class="fas fa-users text-xl <?= $current == 'user.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Settings" onclick="window.location.href='../all/setting.php'">
+        <i class="fas fa-cog text-xl <?= $current == 'setting.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button id="logout-btn" title="Logout">
+        <i class="fas fa-sign-out-alt text-xl text-[#4B2E0E]"></i>
+    </button>
+</aside>
+<?php elseif ($loggedInUserType == 'employee'): ?>
+   <?php $current = basename($_SERVER['PHP_SELF']); ?>   
+<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+  <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+  
+  <button title="Home" onclick="window.location.href='../Employee/employesmain.php'">
+      <i class="fas fa-home text-xl <?= $current == 'employesmain.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+  </button>
+  <button title="Cart" onclick="window.location.href='../Employee/employeepage.php'">
+      <i class="fas fa-shopping-cart text-xl <?= $current == 'employeepage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+  </button>
+  <button title="Transaction Records" onclick="window.location.href='../all/tranlist.php'">
+      <i class="fas fa-list text-xl <?= $current == 'tranlist.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+  </button>
+  <button title="Box" onclick="window.location.href='../Employee/productemployee.php'">
+      <i class="fas fa-box text-xl <?= $current == 'productemployee.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+  </button>
+  <button title="Settings" onclick="window.location.href='../all/setting.php'">
+      <i class="fas fa-cog text-xl <?= $current == 'setting.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+  </button>
+  <button id="logout-btn" title="Logout">
+      <i class="fas fa-sign-out-alt text-xl text-[#4B2E0E]"></i>
+  </button>
+</aside>
+<?php endif; ?>
 
-    <div>
-      <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
+<div class="main-content">
+  <img src="../images/Labg.png" alt="Background image" class="bg-image" />
+  <div class="flex-wrapper relative z-10">
+
+    <!-- Customer Account Orders -->
+    <div class="order-section">
+      <h1 class="text-xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
         <i class="fas fa-user-check"></i> Customer Account Orders
       </h1>
-      <?php if (empty($customerAccountOrders)): ?>
-        <p class="text-gray-700">No registered customer orders found.</p>
-      <?php else: ?>
-        <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
-            <?php foreach ($customerAccountOrders as $transaction): ?>
-            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
-                <p class="text-sm font-semibold text-[#4B2E0E] mb-1">Order #<?= htmlspecialchars($transaction['OrderID']) ?></p>
-                <p class="text-xs text-gray-600 mb-2">
-                    Customer: <span class="font-medium"><?= htmlspecialchars($transaction['CustomerUsername']) ?></span><br>
-                    Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($transaction['OrderDate']))) ?>
-                </p>
-                <ul class="text-sm text-gray-700 list-disc list-inside mb-2">
-                    <?php if (!empty($transaction['OrderItems'])): ?>
-                        <li><?= nl2br(htmlspecialchars($transaction['OrderItems'])) ?></li>
-                    <?php else: ?>
-                        <li>No specific items recorded.</li>
-                    <?php endif; ?>
-                </ul>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="font-bold text-lg text-[#4B2E0E]">₱<?= htmlspecialchars(number_format($transaction['TotalAmount'], 2)) ?></span>
-                    <span class="text-sm text-gray-600">Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?></span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Payment: <?= htmlspecialchars($transaction['PaymentMethod'] ?? 'N/A') ?></p>
+      <div id="customer-orders" class="order-list-wrapper">
+        <?php foreach ($customerAccountOrders as $transaction): ?>
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm mb-4">
+            <p class="text-sm font-semibold text-[#4B2E0E] mb-1">Order #<?= htmlspecialchars($transaction['OrderID']) ?></p>
+            <p class="text-xs text-gray-600 mb-2">
+              Customer: <?= htmlspecialchars($transaction['CustomerUsername']) ?><br>
+              Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($transaction['OrderDate']))) ?>
+            </p>
+            <ul class="text-sm text-gray-700 list-disc list-inside mb-2">
+              <li><?= nl2br(htmlspecialchars($transaction['OrderItems'])) ?></li>
+            </ul>
+            <div class="flex justify-between items-center mt-2">
+              <span class="font-bold text-lg text-[#4B2E0E]">₱<?= number_format($transaction['TotalAmount'], 2) ?></span>
+              <div class="flex gap-2">
+                <button id="prep_btn" class="bg-[#4B2E0E] hover:bg-[#3a240c] text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150"
+                data-id="<?= $transaction['OrderID'] ?>"
+                  data-status="Preparing Order">
+                  <i class="fas fa-utensils mr-1"></i> Prepare Order
+                  </button>
+                <button id="order_btn" class="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150"
+                data-id="<?= $transaction['OrderID'] ?>"
+                data-status="Order Ready">
+               <i class="fas fa-check-circle mr-1"></i> Order Ready
+               </button>
+              </div>
             </div>
-            <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+            <div class="text-right text-xs text-gray-600 mt-1">
+              Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?>
+            </div>
+            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>">
+              Status: <span class="text-blue-700">Pending</span>
+            </div>
+
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <div id="customer-pagination" class="pagination-bar d-flex justify-content-center flex-wrap gap-2"></div>
     </div>
 
-    <div>
-      <h1 class="text-2xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
-        <i class="fas fa-walking"></i> Walk-in/Staff-Assisted Orders
+    <!-- Walk-in / Staff-Assisted Orders -->
+    <div class="order-section">
+      <h1 class="text-xl font-bold text-[#4B2E0E] mb-4 flex items-center gap-2">
+        <i class="fas fa-walking"></i> Walk-in / Staff-Assisted Orders
       </h1>
-      <?php if (empty($walkinStaffOrders)): ?>
-        <p class="text-gray-700">No walk-in or staff-assisted orders found.</p>
-      <?php else: ?>
-        <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
-            <?php foreach ($walkinStaffOrders as $transaction): ?>
-            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm">
-                <p class="text-sm font-semibold text-[#4B2E0E] mb-1">Order #<?= htmlspecialchars($transaction['OrderID']) ?></p>
-                <p class="text-xs text-gray-600 mb-2">
-                    Placed by: 
-                    <?php
-                        if ($transaction['UserTypeID'] == 1) {
-                            $ownerName = trim((string)($transaction['OwnerFirstName'] ?? '') . ' ' . (string)($transaction['OwnerLastName'] ?? ''));
-                            echo htmlspecialchars($ownerName ?: 'Owner') . ' (Owner)'; 
-                        } elseif ($transaction['UserTypeID'] == 2) { 
-                            $employeeName = trim((string)($transaction['EmployeeFirstName'] ?? '') . ' ' . (string)($transaction['EmployeeLastName'] ?? ''));
-                            echo htmlspecialchars($employeeName ?: 'Employee') . ' (Employee)'; 
-                        } elseif ($transaction['UserTypeID'] == 3) {
-                            echo 'Walk-in (Customer)'; 
-                        } else {
-                            echo 'Guest/Unknown'; 
-                        }
-                    ?><br>
-                    Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($transaction['OrderDate']))) ?>
-                </p>
-                <ul class="text-sm text-gray-700 list-disc list-inside mb-2">
-                    <?php if (!empty($transaction['OrderItems'])): ?>
-                        <li><?= nl2br(htmlspecialchars($transaction['OrderItems'])) ?></li>
-                    <?php else: ?>
-                        <li>No specific items recorded.</li>
-                    <?php endif; ?>
-                </ul>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="font-bold text-lg text-[#4B2E0E]">₱<?= htmlspecialchars(number_format($transaction['TotalAmount'], 2)) ?></span>
-                    <span class="text-sm text-gray-600">Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?></span>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Payment: <?= htmlspecialchars($transaction['PaymentMethod'] ?? 'N/A') ?></p>
+      <div id="walkin-orders" class="order-list-wrapper">
+        <?php foreach ($walkinStaffOrders as $transaction): ?>
+          <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm mb-4">
+            <p class="text-sm font-semibold text-[#4B2E0E] mb-1">Order #<?= htmlspecialchars($transaction['OrderID']) ?></p>
+            <p class="text-xs text-gray-600 mb-2">
+              Date: <?= htmlspecialchars(date('M d, Y H:i', strtotime($transaction['OrderDate']))) ?>
+            </p>
+            <ul class="text-sm text-gray-700 list-disc list-inside mb-2">
+              <li><?= nl2br(htmlspecialchars($transaction['OrderItems'])) ?></li>
+            </ul>
+            <div class="flex justify-between items-center mt-2">
+              <span class="font-bold text-lg text-[#4B2E0E]">₱<?= number_format($transaction['TotalAmount'], 2) ?></span>
+              <div class="flex gap-2">
+                <button id="prep_btn"class="bg-[#4B2E0E] hover:bg-[#3a240c] text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150"
+                data-id="<?php echo $transaction['OrderID']; ?>"
+        data-status="Preparing Order">
+                  <i class="fas fa-utensils mr-1"></i> Prepare Order
+                  </button>
+                <button id="order_btn" class="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150"
+                data-id="<?php echo $transaction['OrderID']; ?>"
+        data-status="Order Ready">
+               <i class="fas fa-check-circle mr-1"></i> Order Ready
+               </button>
+              </div>
             </div>
-            <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+            <div class="text-right text-xs text-gray-600 mt-1">
+              Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?>
+            </div>
+            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>">
+              Status: <span class="text-blue-700">Pending</span>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <div id="walkin-pagination" class="pagination-bar d-flex justify-content-center flex-wrap gap-2"></div>
     </div>
 
   </div>
-  
-  <div class="mt-6 flex justify-center w-full max-w-4xl">
-      <?php if ($loggedInUserType === 'owner'): ?>
-          <a href="../Owner/mainpage.php" class="bg-[#4B2E0E] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6b3e14] transition shadow-md">Back to Main Menu</a>
-      <?php elseif ($loggedInUserType === 'employee'): ?>
-          <a href="../Employee/employesmain.php" class="bg-[#4B2E0E] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6b3e14] transition shadow-md">Back to Main Menu</a>
-      <?php endif; ?>
-  </div>
+</div>
 
-    <script>
-        document.getElementById("logout-btn").addEventListener("click", () => {
-            Swal.fire({
-                title: 'Are you sure you want to log out?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#4B2E0E',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, log out',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "logout.php";
-                }
-            });
+<script>
+function paginate(containerId, paginationId, itemsPerPage = 10) {
+    const container = document.getElementById(containerId);
+    const pagination = document.getElementById(paginationId);
+    const items = Array.from(container.children);
+    const totalItems = items.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    let currentPage = 1;
+
+    function showPage(page) {
+        items.forEach((item, i) => {
+            item.style.display = (i >= (page - 1) * itemsPerPage && i < page * itemsPerPage) ? '' : 'none';
         });
-    </script>
+        renderPagination();
+    }
+
+    function renderPagination() {
+        pagination.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.textContent = 'Prev';
+        prev.className = 'btn btn-outline-secondary btn-sm';
+        prev.disabled = currentPage === 1;
+        prev.onclick = () => { if (currentPage > 1) showPage(--currentPage); };
+        pagination.appendChild(prev);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = `btn btn-sm mx-1 ${i === currentPage ? 'btn-dark' : 'btn-outline-secondary'}`;
+            btn.onclick = () => {
+                currentPage = i;
+                showPage(currentPage);
+            };
+            pagination.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.textContent = 'Next';
+        next.className = 'btn btn-outline-secondary btn-sm';
+        next.disabled = currentPage === totalPages;
+        next.onclick = () => { if (currentPage < totalPages) showPage(++currentPage); };
+        pagination.appendChild(next);
+    }
+
+    if (totalPages > 1) {
+        showPage(currentPage);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  paginate('customer-orders', 'customer-pagination');
+  paginate('walkin-orders', 'walkin-pagination');
+
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    Swal.fire({
+      title: 'Are you sure you want to log out?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#4B2E0E',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, log out',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "logout.php";
+      }
+    });
+  });
+
+ document.querySelectorAll('button[data-status]').forEach(button => {
+  button.addEventListener('click', () => {
+    const orderId = button.getAttribute('data-id');
+    const status = button.getAttribute('data-status');
+    const statusElement = document.getElementById(`status-${orderId}`);
+
+    if (statusElement) {
+      statusElement.innerHTML = ` <span class="text-green-700 font-semibold">${status}</span>`;
+      sessionStorage.setItem(`orderStatus-${orderId}`, `<span class="text-green-700 font-semibold">${status}</span>`);
+    }
+
+    const parent = button.closest('.flex');
+
+   if (status === "Preparing Order") {
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+    } else if (status === "Order Ready") {
+
+      parent.querySelectorAll('button[data-status]').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+      });
+    }
+  });
+});
+
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.startsWith("orderStatus-")) {
+      const orderId = key.replace("orderStatus-", "");
+      const statusElement = document.getElementById(`status-${orderId}`);
+      if (statusElement) {
+        statusElement.innerHTML = sessionStorage.getItem(key);
+        const card = statusElement.closest('.border');
+        if (card) {
+          const btns = card.querySelectorAll('button[data-status]');
+          btns.forEach(btn => {
+            
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+          });
+        }
+      }
+    }
+  });
+});
+
+
+
+
+</script>
 </body>
 </html>

@@ -1,13 +1,11 @@
 <?php
 session_start();
 
-ob_start(); 
 
 if (!isset($_SESSION['OwnerID'])) {
 
   if (!(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')) {
       header('Location: ../all/login.php');
-      ob_end_clean(); 
       exit();
   }
 }
@@ -17,7 +15,7 @@ $con = new database();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     header('Content-Type: application/json'); 
-    ob_end_clean(); 
+
 
     if (!isset($_SESSION['OwnerID'])) {
         echo json_encode(['success' => false, 'message' => 'Session expired. Please log in again.']);
@@ -48,7 +46,7 @@ $categories = $con->getAllCategories();
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>Coffee Menu with Category Tabs and Add Item Functionality</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -59,28 +57,49 @@ $categories = $con->getAllCategories();
  </head>
  <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
   <!-- Sidebar -->
-  <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-  <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
-  <button title="Dashboard" onclick="window.location='../Owner/dashboard.php'"><i class="fas fa-chart-line text-xl"></i></button>
-  <button title="Home" onclick="window.location='../Owner/mainpage.php'"><i class="fas fa-home text-xl"></i></button>
-  <button title="Orders" onclick="window.location='../Owner/page.php'"><i class="fas fa-shopping-cart text-xl"></i></button>
-  <button title="Order List" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list text-xl"></i></button>
-  <button title="Inventory" onclick="window.location='../Owner/product.php'"><i class="fas fa-box text-xl"></i></button>
-  <button title="Employees" onclick="window.location='../Owner/user.php'"><i class="fas fa-users text-xl"></i></button>
-  <button title="Settings" onclick="window.location='../all/setting.php'"><i class="fas fa-cog text-xl"></i></button>
-  <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
+
+<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+    <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+    <?php $current = basename($_SERVER['PHP_SELF']); ?>   
+    <button title="Dashboard" onclick="window.location.href='../Owner/dashboard.php'">
+        <i class="fas fa-chart-line text-xl <?= $current == 'dashboard.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Home" onclick="window.location.href='../Owner/mainpage.php'">
+        <i class="fas fa-home text-xl <?= $current == 'mainpage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Cart" onclick="window.location.href='../Owner/page.php'">
+        <i class="fas fa-shopping-cart text-xl <?= $current == 'page.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Order List" onclick="window.location.href='../all/tranlist.php'">
+        <i class="fas fa-list text-xl <?= $current == 'tranlist.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Product List" onclick="window.location.href='../Owner/product.php'">
+        <i class="fas fa-box text-xl <?= $current == 'product.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Employees" onclick="window.location.href='../Owner/user.php'">
+        <i class="fas fa-users text-xl <?= $current == 'user.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Settings" onclick="window.location.href='../all/setting.php'">
+        <i class="fas fa-cog text-xl <?= $current == 'setting.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button id="logout-btn" title="Logout">
+        <i class="fas fa-sign-out-alt text-xl text-[#4B2E0E]"></i>
+    </button>
 </aside>
+
 
   <!-- Main content -->
   <main class="flex-1 p-6 relative flex flex-col">
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
-    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Name's Homepage</h1>
+    <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Homepage</h1>
    </header>
 
    <!-- Category buttons -->
-   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav"></nav>
+   <nav aria-label="Coffee categories" id="category-nav"
+  class="flex gap-3 mb-3 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-[#c4b09a] scrollbar-track-transparent px-1">
+</nav>
    <!-- Coffee Menu Grid -->
    <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items"></div>
@@ -95,7 +114,7 @@ $categories = $con->getAllCategories();
     ?>
     <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo "{$customer}'s Order:"; ?></h2>
     <div class="text-xs text-gray-700" id="order-list">
-     <p class="font-semibold mb-1">CATEGORY</p>
+
     </div>
    </div>
    <div class="mt-6 text-center">
@@ -108,7 +127,6 @@ $categories = $con->getAllCategories();
    </div>
   </aside>
   <script>
-   // Dynamic menuData from PHP
    const menuData = <?php
 echo json_encode(array_map(function($p) {
     return [
@@ -347,8 +365,6 @@ echo json_encode(array_map(function($p) {
            quantity: item.quantity,
            price_id: item.price_id
          }));
-         
-         // Display a loading SweetAlert while processing
          Swal.fire({
            title: 'Processing Order...',
            text: 'Please wait, your transaction is being processed.',
@@ -357,13 +373,11 @@ echo json_encode(array_map(function($p) {
              Swal.showLoading();
            }
          });
-
-         // Use Fetch API to send data via POST
          const formData = new FormData();
          formData.append('orderData', JSON.stringify(orderArray));
          formData.append('paymentMethod', paymentMethod);
 
-         fetch('page.php', { // Post to the same page
+         fetch('page.php', { 
            method: 'POST',
            body: formData
          })

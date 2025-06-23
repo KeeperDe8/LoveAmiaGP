@@ -1,11 +1,10 @@
+
 <?php
 session_start();
 
-ob_start();
 
 if (!isset($_SESSION['EmployeeID'])) {
-  header('Location: ../all/login.php'); // Correct path to login.php
-  ob_end_clean();
+  header('Location: ../all/login.php');
   exit();
 }
 
@@ -19,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
     if (!isset($_SESSION['EmployeeID'])) {
       
         header('Location: ../all/login.php?error=session_expired');
-        ob_end_clean();
         exit();
     }
     
@@ -35,13 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['orderData'])) {
        
         $redirectUrl = "../all/order_receipt.php?order_id={$result['order_id']}&ref_no={$result['ref_no']}";
         header("Location: " . $redirectUrl);
-        ob_end_clean();
         exit;
     } else {
        
         error_log("Employee Order Save Failed: " . $result['message']);
         header("Location: employeepage.php?error=order_failed"); 
-        ob_end_clean();
         exit;
     }
 }
@@ -58,7 +54,7 @@ $categories = $con->getAllCategories();
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>Employee Order Page</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -67,20 +63,34 @@ $categories = $con->getAllCategories();
    #menu-scroll::-webkit-scrollbar-thumb { background-color: #c4b09a; border-radius: 10px; }
   </style>
  </head>
- <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
+ <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex flex-wrap md:flex-nowrap">
   <!-- Sidebar -->
   <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-   <button aria-label="Home" class="text-[#4B2E0E] text-xl" title="Home" type="button" onclick="window.location='../Employee/employesmain.php'"><i class="fas fa-home"></i></button>
-   <button aria-label="Cart" class="text-[#4B2E0E] text-xl" title="Cart" type="button" onclick="window.location='../Employee/employeepage.php'"><i class="fas fa-shopping-cart"></i></button>
-   <!-- Updated link to tranlist.php (now in ../all/) -->
-   <button aria-label="Order List" class="text-[#4B2E0E] text-xl" title="Transaction Records" type="button" onclick="window.location='../all/tranlist.php'"><i class="fas fa-list"></i></button>
-   <button aria-label="Box" class="text-[#4B2E0E] text-xl" title="Box" type="button" onclick="window.location='../Employee/productemployee.php'"><i class="fas fa-box"></i></button>
-   <button aria-label="Settings" class="text-[#4B2E0E] text-xl" title="Settings" type="button" onclick="window.location='../all/setting.php'"><i class="fas fa-cog"></i></button>
-   <button id="logout-btn" aria-label="Logout" name="logout" class="text-[#4B2E0E] text-xl" title="Logout" type="button"><i class="fas fa-sign-out-alt"></i></button>
-  </aside>
+    <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+    <?php $current = basename($_SERVER['PHP_SELF']); ?>   
 
+    <button title="Home" onclick="window.location.href='../Employee/employesmain.php'">
+        <i class="fas fa-home text-xl <?= $current == 'employesmain.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Cart" onclick="window.location.href='../Employee/employeepage.php'">
+        <i class="fas fa-shopping-cart text-xl <?= $current == 'employeepage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Transaction Records" onclick="window.location.href='../all/tranlist.php'">
+        <i class="fas fa-list text-xl <?= $current == 'tranlist.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Product List" onclick="window.location.href='../Employee/productemployee.php'">
+        <i class="fas fa-box text-xl <?= $current == 'productemployee.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button title="Settings" onclick="window.location.href='../all/setting.php'">
+        <i class="fas fa-cog text-xl <?= $current == 'setting.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
+    </button>
+    <button id="logout-btn" title="Logout">
+        <i class="fas fa-sign-out-alt text-xl text-[#4B2E0E]"></i>
+    </button>
+</aside>
+<div class="flex flex-col md:flex-row flex-1 overflow-hidden">
   <!-- Main content -->
-  <main class="flex-1 p-6 relative flex flex-col">
+ <main class="flex-1 p-6 relative flex flex-col">
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
@@ -88,22 +98,23 @@ $categories = $con->getAllCategories();
    </header>
 
    <!-- Category buttons -->
-   <nav aria-label="Coffee categories" class="flex flex-wrap gap-3 mb-3 max-w-xl" id="category-nav"></nav>
+   <nav aria-label="Coffee categories" id="category-nav"
+  class="flex gap-3 mb-3 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-[#c4b09a] scrollbar-track-transparent px-1">
+</nav>
    <!-- Coffee Menu Grid -->
    <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items"></div>
-   </section>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" id="menu-items"></div>
+</section>
   </main>
   
   <!-- Order summary -->
-  <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
+   <aside aria-label="Order summary" class="w-full md:w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4 mt-4 md:mt-0 md:ml-4 max-h-[90vh] overflow-y-auto">
    <div>
     <?php
     $customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
     ?>
     <h2 class="font-semibold text-[#4B2E0E] mb-2"><?php echo "{$customer}'s Order:"; ?></h2>
     <div class="text-xs text-gray-700" id="order-list">
-     <p class="font-semibold mb-1">CATEGORY</p>
     </div>
    </div>
    <div class="mt-6 text-center">
@@ -116,7 +127,6 @@ $categories = $con->getAllCategories();
    </div>
   </aside>
   <script>
-   // Dynamic menuData from PHP
    const menuData = <?php
 echo json_encode(array_map(function($p) {
     return [
@@ -131,7 +141,6 @@ echo json_encode(array_map(function($p) {
 }, $products));
 ?>;
 
-   // Dynamic categories from PHP
    const categories = <?php echo json_encode($categories); ?>;
    const categoryNav = document.getElementById('category-nav');
    function renderCategories() {
@@ -337,7 +346,7 @@ echo json_encode(array_map(function($p) {
        input: 'radio',
        inputOptions: {
          cash: 'Cash',
-         gcash: 'GCash' // Updated payment options
+         gcash: 'GCash'
        },
        inputValidator: (value) => {
          if (!value) {

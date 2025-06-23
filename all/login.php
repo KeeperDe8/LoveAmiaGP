@@ -13,7 +13,7 @@ if (isset($_SESSION['EmployeeID'])) {
     exit();
 }
 if (isset($_SESSION['OwnerID'])) {
-    header('Location: ../Owner/mainpage.php');
+    header('Location: ../Owner/dashboard.php');
     exit();
 }
 
@@ -21,7 +21,6 @@ if (isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // Try customer login
     $user = $con->loginCustomer($username, $password);
     if ($user) {
         $_SESSION['CustomerID'] = $user['CustomerID'];
@@ -38,7 +37,6 @@ if (isset($_POST['login'])) {
         });
         </script>";
     } else {
-        // Try employee login
         $emp = $con->loginEmployee($username, $password);
         if ($emp) {
             $_SESSION['EmployeeID'] = $emp['EmployeeID'];
@@ -55,7 +53,6 @@ if (isset($_POST['login'])) {
             });
             </script>";
         } else {
-            // Try owner login
             $own = $con->loginOwner($username, $password);
             if ($own) {
                 $_SESSION['OwnerID'] = $own['OwnerID'];
@@ -68,11 +65,11 @@ if (isset($_POST['login'])) {
                   text: 'Welcome, " . addslashes(htmlspecialchars($own['OwnerFN'])) . "!',
                   confirmButtonText: 'Continue'
                 }).then(() => {
-                  window.location.href = '../Owner/mainpage.php';
+                  window.location.href = '../Owner/dashboard.php';
                 });
                 </script>";
             } else {
-                // No match
+
                 $sweetAlertConfig = "
                 <script>
                 Swal.fire({
@@ -140,7 +137,7 @@ if (isset($_POST['login'])) {
   background-color: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  padding: 80px 40px 50px; /* extra top padding to avoid overlap */
+  padding: 80px 40px 50px; 
   width: 450px;
   color: white;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
