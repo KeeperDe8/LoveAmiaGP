@@ -395,15 +395,10 @@ echo json_encode(array_map(function($p) {
            Swal.close(); 
 
            if (data.success) {
-             Swal.fire({
-               icon: 'success',
-               title: 'Transaction Successful!',
-               text: data.message, 
-               confirmButtonText: 'OK'
-             }).then(() => {
-               
+          
+      
                window.location.href = `../all/order_receipt.php?order_id=${data.order_id}&ref_no=${data.ref_no}`;
-             });
+          
            } else {
              Swal.fire({
                icon: 'error',

@@ -181,7 +181,7 @@ class database {
         return $standardizedData;
     }
 
-       public function updateUserData($userID, $userType, $data) {
+       function updateUserData($userID, $userType, $data) {
         $con = $this->opencon();
         $table = ''; $idColumn = ''; $fieldMap = [];
 
