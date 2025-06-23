@@ -25,10 +25,10 @@ if (isset($_SESSION['OwnerID'])) {
     exit();
 }
 
-// Initialize update result
+
 $updateResult = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // The updateUserData function now returns an array with success status and a message
+
     $updateResult = $con->updateUserData($userID, $loggedInUserType, $_POST); 
 }
 
@@ -173,7 +173,7 @@ if (empty($userData)) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // This script block handles the pop-up notification after a form submission.
+  
             <?php if ($updateResult !== null): ?>
                 Swal.fire({
                     title: '<?php echo $updateResult['success'] ? "Success!" : "Error!"; ?>',
@@ -182,7 +182,7 @@ if (empty($userData)) {
                 });
             <?php endif; ?>
 
-            // This block handles the logout confirmation dialog.
+
             const logoutBtn = document.getElementById("logout-btn");
             if (logoutBtn) {
                 logoutBtn.addEventListener("click", () => {
