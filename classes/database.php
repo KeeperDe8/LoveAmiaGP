@@ -196,7 +196,7 @@ class database {
                 break;
             case 'owner':
                 $table = 'owner'; $idColumn = 'OwnerID';
-                $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'O_Password'];
+                $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'Password'];
                 break;
             default:
                 return ['success' => false, 'message' => 'Invalid user type.'];
