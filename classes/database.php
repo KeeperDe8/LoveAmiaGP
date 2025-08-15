@@ -196,7 +196,7 @@ class database {
                 break;
             case 'owner':
                 $table = 'owner'; $idColumn = 'OwnerID';
-                $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'Password'];
+                $fieldMap = ['username' => 'Username', 'name' => 'OwnerFN', 'email' => 'O_Email', 'phone' => 'O_PhoneNumber', 'password' => 'O_Password'];
                 break;
             default:
                 return ['success' => false, 'message' => 'Invalid user type.'];
@@ -364,11 +364,25 @@ class database {
     }
 
     function getAllProductsWithPrice() {
-        $con = $this->opencon();
-        $stmt = $con->prepare("SELECT p.ProductID, p.ProductName, p.ProductCategory, p.Created_AT, pp.UnitPrice, pp.PriceID FROM product p LEFT JOIN productprices pp ON p.ProductID = pp.ProductID WHERE p.is_available = 1 GROUP BY p.ProductID");
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+    $con = $this->opencon();
+    $stmt = $con->prepare("
+        SELECT 
+            p.ProductID, 
+            p.ProductName, 
+            p.ProductCategory, 
+            p.Created_AT, 
+            p.ImagePath, 
+            pp.UnitPrice, 
+            pp.PriceID 
+        FROM product p 
+        LEFT JOIN productprices pp ON p.ProductID = pp.ProductID 
+        WHERE p.is_available = 1 
+        GROUP BY p.ProductID
+    ");
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 
     function getAllCategories() {
         $con = $this->opencon();

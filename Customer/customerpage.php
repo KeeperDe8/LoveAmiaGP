@@ -123,7 +123,7 @@ echo json_encode(array_map(function($p) {
         'id' => 'product-' . $p['ProductID'],
         'name' => $p['ProductName'],
         'price' => floatval($p['UnitPrice']),
-        'img' => 'https://placehold.co/80x80/png?text=' . urlencode($p['ProductName']),
+        'img' => !empty($p['ImagePath']) ? '../uploads/' . $p['ImagePath'] : 'https://placehold.co/80x80/png?text=' . urlencode($p['ProductName']),
         'alt' => $p['ProductName'],
         'category' => strtolower($p['ProductCategory']),
         'price_id' => $p['PriceID']
@@ -170,9 +170,7 @@ echo json_encode(array_map(function($p) {
        const img = document.createElement("img");
        img.src = item.img;
        img.alt = item.alt;
-       img.className = "mb-2";
-       img.width = 80;
-       img.height = 80;
+       img.className = "mb-2 w-20 h-20 object-cover rounded";
  
        const h3 = document.createElement("h3");
        h3.className = "font-semibold text-sm text-[#4B2E0E] mb-1 text-center";
