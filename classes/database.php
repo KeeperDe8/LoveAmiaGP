@@ -88,7 +88,7 @@ class database {
         $con = $this->opencon();
         $stmt = $con->prepare("
             SELECT 
-                p.ProductID, p.ProductName, p.ProductCategory, p.Description, p.Allergen, p.is_available, p.Created_AT,
+                    p.ProductID, p.ProductName, p.ProductCategory, p.is_available, p.Created_AT, p.Allergen,
                 pp.UnitPrice, pp.Effective_From, pp.Effective_To, pp.PriceID
             FROM product p
             JOIN productprices pp ON p.ProductID = pp.ProductID
@@ -332,13 +332,15 @@ class database {
         }
     }
 
-    function addProduct($productName, $category, $description, $allergen, $price, $createdAt, $effectiveFrom, $effectiveTo, $ownerID) {
+    function addProduct($productName, $category, $price, $createdAt, $effectiveFrom, $effectiveTo, $ownerID, $description = null, $allergens = null) {
         $con = $this->opencon();
         try {
             $con->beginTransaction();
-            // Description and Allergen columns must exist in `product` table
-            $stmt = $con->prepare("INSERT INTO product (ProductName, ProductCategory, Description, Allergen) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$productName, $category, $description, $allergen]);
+                // normalize allergens string (default to 'None' if empty)
+                $allergenValue = trim((string)$allergens);
+                if ($allergenValue === '') { $allergenValue = 'None'; }
+                $stmt = $con->prepare("INSERT INTO product (ProductName, ProductCategory, Allergen, Description) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$productName, $category, $allergenValue, $description]);
             $productID = $con->lastInsertId();
             $stmt2 = $con->prepare("INSERT INTO productprices (ProductID, UnitPrice, Effective_From, Effective_To) VALUES (?, ?, ?, ?)");
             $stmt2->execute([$productID, $price, $effectiveFrom, $effectiveTo]);
@@ -366,20 +368,22 @@ class database {
 
     function getAllProductsWithPrice() {
     $con = $this->opencon();
-    $stmt = $con->prepare("
-        SELECT 
-            p.ProductID, 
-            p.ProductName, 
-            p.ProductCategory, 
-            p.Created_AT, 
-            p.ImagePath, 
-            pp.UnitPrice, 
-            pp.PriceID 
-        FROM product p 
-        LEFT JOIN productprices pp ON p.ProductID = pp.ProductID 
-        WHERE p.is_available = 1 
-        GROUP BY p.ProductID
-    ");
+            $stmt = $con->prepare("
+                SELECT 
+                    p.ProductID, 
+                    p.ProductName, 
+                    p.ProductCategory, 
+                    p.Created_AT, 
+                    p.ImagePath, 
+                    p.Description,
+                    p.Allergen,
+                    pp.UnitPrice, 
+                    pp.PriceID 
+                FROM product p 
+                LEFT JOIN productprices pp ON p.ProductID = pp.ProductID 
+                WHERE p.is_available = 1 
+                GROUP BY p.ProductID
+            ");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

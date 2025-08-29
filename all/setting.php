@@ -136,40 +136,79 @@ if (empty($userData)) {
     </aside>
   <?php endif; ?>
 
-  <div class="flex-grow flex items-center justify-center p-4">
-    <div class="bg-white/90 rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <h2 class="text-2xl font-bold text-[#4B2E0E] mb-6 text-center">Account Settings</h2>     
-        
-        <form method="POST" class="space-y-4">
-            <div>
-                <label class="block text-[#4B2E0E] font-semibold mb-1">Username</label>
-                <input type="text" name="username" value="<?php echo htmlspecialchars($userData['username'] ?? ''); ?>" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
+        <div class="flex-grow flex items-stretch justify-stretch p-0">
+            <div class="bg-white/90 w-full min-h-screen p-4 sm:p-8">
+                <div class="flex items-center justify-between flex-wrap gap-3 pb-4 mb-6 border-b border-gray-200">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-[#4B2E0E]">Account Settings</h2>
+                <span class="text-xs sm:text-sm text-gray-500">Signed in as <strong><?= htmlspecialchars($userData['username'] ?? '') ?></strong> — <?= htmlspecialchars(ucfirst($loggedInUserType)) ?></span>
             </div>
-            <div>
-                <label class="block text-[#4B2E0E] font-semibold mb-1">Name</label>
-                <input type="text" name="name" value="<?php echo htmlspecialchars($userData['name'] ?? ''); ?>" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
-            </div>
-            <div>
-                <label class="block text-[#4B2E0E] font-semibold mb-1">Email</label>
-                <input type="email" name="email" value="<?php echo htmlspecialchars($userData['email'] ?? ''); ?>" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
-            </div>
-            <div>
-                <label class="block text-[#4B2E0E] font-semibold mb-1">Phone Number</label>
-                <input type="text" name="phone" value="<?php echo htmlspecialchars($userData['phone'] ?? ''); ?>" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
-            </div>
-            <hr/>
-            <div>
-                <label class="block text-[#4B2E0E] font-semibold mb-1">New Password <span class="text-xs text-gray-400">(leave blank to keep current)</span></label>
-                <input type="password" name="new_password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" placeholder="Enter new password">
-            </div>
-             <div>
-                <label class="block text-gray-700 font-bold mb-1">Current Password <span class="text-sm font-normal text-gray-500">(only required if changing password)</span></label>
-                <input type="password" name="current_password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-red-500 focus:border-red-500 focus:outline-none" placeholder="Enter current password to change it">
-            </div>
-            <button type="submit" class="w-full bg-[#c19a6b] hover:bg-[#a17850] text-white font-semibold py-2 rounded-lg transition">Save Changes</button>
-        </form>
+
+                <form id="settings-form" method="POST" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Profile -->
+                    <section class="col-span-1 bg-white/80 border border-gray-200 rounded-xl p-4 sm:p-6 h-full">
+                    <h3 class="text-lg font-bold text-[#4B2E0E] mb-4">Profile</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">Username</label>
+                            <input autocomplete="username" type="text" name="username" value="<?php echo htmlspecialchars($userData['username'] ?? ''); ?>" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">Name</label>
+                            <input autocomplete="name" type="text" name="name" value="<?php echo htmlspecialchars($userData['name'] ?? ''); ?>" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">Email</label>
+                            <input autocomplete="email" type="email" name="email" value="<?php echo htmlspecialchars($userData['email'] ?? ''); ?>" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
+                            <p class="text-xs text-gray-500 mt-1">We’ll use this for receipts and account recovery.</p>
+                        </div>
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">Phone Number</label>
+                            <input inputmode="tel" pattern="[+0-9\-\s]{7,}" title="Digits, spaces, + or - only" type="text" name="phone" value="<?php echo htmlspecialchars($userData['phone'] ?? ''); ?>" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" required>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button type="reset" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Reset</button>
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-[#c19a6b] hover:bg-[#a17850] text-white font-semibold">Save Changes</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Security -->
+            <section class="col-span-1 bg-white/80 border border-gray-200 rounded-xl p-4 sm:p-6 h-full">
+                    <h3 class="text-lg font-bold text-[#4B2E0E] mb-4">Security</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">New Password <span class="text-xs text-gray-400">(leave blank to keep current)</span></label>
+                            <div class="relative">
+                                <input id="new_password" autocomplete="new-password" type="password" name="new_password" class="w-full pr-12 px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" placeholder="Enter new password">
+                                <button type="button" data-toggle-password="#new_password" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" aria-label="Toggle password visibility"><i class="fa-regular fa-eye"></i></button>
+                            </div>
+                            <div id="pw-meter" class="mt-2 h-2 rounded bg-gray-200 overflow-hidden">
+                                <div id="pw-meter-bar" class="h-2 w-0 bg-red-500 transition-all"></div>
+                            </div>
+                            <p id="pw-hint" class="text-xs text-gray-500 mt-1">Use 8+ characters with a mix of upper/lowercase, numbers, and symbols.</p>
+                        </div>
+                        <div>
+                            <label class="block text-[#4B2E0E] font-semibold mb-1">Confirm New Password</label>
+                            <div class="relative">
+                                <input id="confirm_password" autocomplete="new-password" type="password" name="confirm_password" class="w-full pr-12 px-4 py-3 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" placeholder="Re-enter new password">
+                                <button type="button" data-toggle-password="#confirm_password" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" aria-label="Toggle password visibility"><i class="fa-regular fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-1">Current Password <span class="text-xs font-normal text-gray-500">(required when changing password)</span></label>
+                            <div class="relative">
+                                <input id="current_password" autocomplete="current-password" type="password" name="current_password" class="w-full pr-12 px-4 py-3 rounded-lg border border-gray-300 focus:ring-red-500 focus:outline-none" placeholder="Enter current password">
+                                <button type="button" data-toggle-password="#current_password" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700" aria-label="Toggle password visibility"><i class="fa-regular fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-[#c19a6b] hover:bg-[#a17850] text-white font-semibold">Update Security</button>
+                        </div>
+                    </div>
+                </section>
+            </form>
+        </div>
     </div>
-  </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -205,6 +244,57 @@ if (empty($userData)) {
                     });
                 });
             }
+
+            // Toggle password visibility
+            document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sel = btn.getAttribute('data-toggle-password');
+                    const input = document.querySelector(sel);
+                    if (!input) return;
+                    input.type = input.type === 'password' ? 'text' : 'password';
+                    btn.querySelector('i')?.classList.toggle('fa-eye');
+                    btn.querySelector('i')?.classList.toggle('fa-eye-slash');
+                });
+            });
+
+            // Password strength meter
+            const newPw = document.getElementById('new_password');
+            const meter = document.getElementById('pw-meter-bar');
+            const hint = document.getElementById('pw-hint');
+            function scorePassword(pw){
+                let score = 0; if (!pw) return 0; const tests = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/];
+                score += Math.min(10, pw.length) * 5; tests.forEach(rx => { if (rx.test(pw)) score += 20; });
+                return Math.min(100, score);
+            }
+            function renderMeter(){
+                const s = scorePassword(newPw.value);
+                meter.style.width = s + '%';
+                meter.className = 'h-2 transition-all ' + (s<40?'bg-red-500':s<70?'bg-yellow-500':'bg-green-500');
+                hint.textContent = s<70? 'Use 8+ characters with upper/lowercase, numbers, and symbols.' : 'Strong password';
+            }
+            if (newPw){ newPw.addEventListener('input', renderMeter); renderMeter(); }
+
+            // Client-side validation before submit
+            const form = document.getElementById('settings-form');
+            let dirty = false; form?.addEventListener('input', ()=>{ dirty = true; });
+            window.addEventListener('beforeunload', (e)=>{ if (dirty) { e.preventDefault(); e.returnValue=''; } });
+            form?.addEventListener('submit', (e) => {
+                const npw = newPw?.value.trim();
+                const cpw = (document.getElementById('confirm_password')?.value || '').trim();
+                const cur = (document.getElementById('current_password')?.value || '').trim();
+                const phone = document.querySelector('input[name="phone"]').value.trim();
+                const email = document.querySelector('input[name="email"]').value.trim();
+                const errs = [];
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.push('Please enter a valid email address.');
+                if (phone && !/^[+0-9\-\s]{7,}$/.test(phone)) errs.push('Phone number can include digits, spaces, + or -.');
+                if (npw) {
+                    if (!cur) errs.push('Current password is required to set a new password.');
+                    if (npw !== cpw) errs.push('New password and confirmation do not match.');
+                    const s = scorePassword(npw); if (s < 60) errs.push('Please choose a stronger password.');
+                }
+                if (errs.length){ e.preventDefault(); Swal.fire({ icon:'warning', title:'Check your input', html: '<ul style="text-align:left">'+errs.map(x=>'<li>'+x+'</li>').join('')+'</ul>' }); return false; }
+                dirty = false; // allow navigation on successful submit
+            });
         });
     </script>
 </body>

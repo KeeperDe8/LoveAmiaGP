@@ -47,7 +47,7 @@ foreach ($allOrders as $transaction) {
         background: url('../images/LAbg.png') no-repeat center center/cover;
     }
     .main-content {
-        flex-grow: 1; padding: 1rem; position: relative; display: flex; flex-direction: column;
+        flex-grow: 1; padding: 1rem 1rem 0 1rem; position: relative; display: flex; flex-direction: column;
         align-items: stretch; justify-content: flex-start; width: 100%;
     }
     .main-content .bg-image {
@@ -55,12 +55,12 @@ foreach ($allOrders as $transaction) {
     }
     .flex-wrapper {
         flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 2rem; padding: 1rem;
+        gap: 2rem; padding: 1rem 1rem 0 1rem;
     }
     .order-section {
         position: relative; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(8px); border-radius: 1rem; padding: 1.5rem;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1); height: calc(100vh - 150px); overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1); height: calc(100vh - 100px); overflow: hidden;
     }
     .order-list-wrapper { overflow-y: auto; flex-grow: 1; margin-bottom: 3.5rem; }
     .pagination-bar { position: absolute; bottom: 1rem; left: 0; right: 0; }
@@ -112,7 +112,7 @@ foreach ($allOrders as $transaction) {
               </div>
             </div>
             <div class="text-right text-xs text-gray-600 mt-1">Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?></div>
-            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>">Status: <span class="text-blue-700">Pending</span></div>
+            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>"><span class="text-blue-700">Pending</span></div>
           </div>
         <?php endforeach; ?>
       </div>
@@ -134,7 +134,7 @@ foreach ($allOrders as $transaction) {
               </div>
             </div>
             <div class="text-right text-xs text-gray-600 mt-1">Ref: <?= htmlspecialchars($transaction['ReferenceNo'] ?? 'N/A') ?></div>
-            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>">Status: <span class="text-blue-700">Pending</span></div>
+            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-<?= $transaction['OrderID'] ?>"><span class="text-blue-700">Pending</span></div>
           </div>
         <?php endforeach; ?>
       </div>
@@ -206,8 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (statusElement) {
                 const newStatusHTML = status === "Preparing Order"
-                    ? `Status: <span class="text-orange-500 font-semibold">${status}</span>`
-                    : `Status: <span class="text-green-700 font-semibold">${status}</span>`;
+                    ? `<span class="text-orange-500 font-semibold">${status}</span>`
+                    : `<span class="text-green-700 font-semibold">${status}</span>`;
                 statusElement.innerHTML = newStatusHTML;
                 sessionStorage.setItem(`orderStatus-${orderId}`, newStatusHTML);
             }
@@ -232,7 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const orderId = key.replace("orderStatus-", "");
             const statusElement = document.getElementById(`status-${orderId}`);
             if (statusElement) {
-                statusElement.innerHTML = sessionStorage.getItem(key);
+                // normalize any previously-saved values that included 'Status:'
+                const saved = sessionStorage.getItem(key) || '';
+                const normalized = saved.replace(/\bStatus:\s*/i, '');
+                statusElement.innerHTML = normalized;
                 const card = statusElement.closest('.border');
                 if (card) {
                     const statusText = statusElement.textContent;

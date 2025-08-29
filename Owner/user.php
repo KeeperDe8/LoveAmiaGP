@@ -55,6 +55,37 @@ if (isset($_POST['add_employee'])) {
       flex-wrap: wrap;
       gap: 0.5rem;
     }
+
+  /* Add Employee modal custom layout */
+  .ae-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+  .ae-input { width: 100%; padding: 12px 16px; border-radius: 16px; border: 2px solid #ddd; outline: none; font-size: 14px; }
+  .ae-input:focus { border-color: #C4A07A; box-shadow: 0 0 0 3px rgba(196,160,122,0.2); }
+  .ae-section-title { font-weight: 800; font-size: 20px; color: #1f2937; margin: 10px 0; }
+  .ae-soft { background: #f3f4f6; padding: 16px; border-radius: 20px; }
+  .ae-label { font-weight: 700; font-size: 14px; color: #111827; margin-bottom: 6px; display: block; }
+  .ae-avatar-wrap { background: #f3f4f6; padding: 14px; border-radius: 24px; border: 1px solid #e5e7eb; }
+  .ae-avatar { width: 100%; max-width: 280px; height: 280px; object-fit: cover; display: block; border-radius: 20px; margin: 0 auto; background: #e5e7eb; }
+  .ae-select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 2px solid #ddd; outline: none; }
+  .ae-select:focus { border-color: #C4A07A; box-shadow: 0 0 0 3px rgba(196,160,122,0.2); }
+  .swal2-popup.ae-wide { width: 980px !important; }
+  .swal-feedback { color: #dc3545; font-size: 13px; text-align: left; display: block; margin-top: 5px; }
+  .swal2-title { color: #21160E; font-weight: 800; }
+
+  /* Reuse Add Product modal look-and-feel */
+  .ap-section-title { color: #21160E; font-weight: 800; }
+  .ap-label { color: #4B2E0E; font-weight: 600; font-size: 0.9rem; }
+  .ap-soft-field { background: #EEE6DC; border-radius: 16px; padding: 14px; border: 1px solid rgba(196,160,122,0.28); }
+  .ap-image-wrap { background: #E8E0D7; border-radius: 18px; padding: 12px; border: 1px solid rgba(196,160,122,0.28); }
+  .ap-image { border-radius: 14px; width: 100%; height: 300px; object-fit: cover; }
+  .swal2-popup.ae-ap-popup { background: #F7F2EC; box-shadow: 0 12px 32px rgba(75,46,14,0.18), inset 0 1px 0 rgba(255,255,255,0.65); border-radius: 24px; }
+  .btn-soft-hollow { background: #CFCAC4; color: #21160E; border-radius: 9999px; padding: 0.5rem 1rem; border: 3px solid rgba(255,255,255,0.85); font-weight: 700; }
+  .btn-soft-gray { background: linear-gradient(180deg, #A1764E 0%, #7C573A 100%); color: #FFFFFF; border-radius: 9999px; padding: 0.5rem 1.25rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.75); box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.06), 0 4px 12px rgba(75,46,14,0.25); }
+  .btn-soft-gray:hover { filter: brightness(1.02); }
+  .btn-soft-gray:active { transform: translateY(1px); }
+  /* Stronger specificity so SweetAlert defaults don't override our button styles */
+  .swal2-styled.btn-soft-gray { background: linear-gradient(180deg, #A1764E 0%, #7C573A 100%) !important; color: #FFFFFF !important; border-radius: 9999px !important; border: 1px solid rgba(255,255,255,0.75) !important; box-shadow: inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -2px 0 rgba(0,0,0,0.06), 0 4px 12px rgba(75,46,14,0.25) !important; }
+  .swal2-styled.btn-soft-hollow { background: #CFCAC4 !important; color: #21160E !important; border-radius: 9999px !important; border: 3px solid rgba(255,255,255,0.85) !important; box-shadow: none !important; }
+  .swal2-styled:focus { box-shadow: none !important; }
   </style>
 </head>
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
@@ -194,24 +225,62 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
   e.preventDefault();
   Swal.fire({
     title: 'Add Employee',
+    customClass: { popup: 'ae-wide ae-ap-popup', confirmButton: 'btn-soft-gray rounded-full', cancelButton: 'btn-soft-hollow rounded-full' },
     html:
-      `<input id="swal-emp-fname" class="swal2-input" placeholder="First Name">
-       <input id="swal-emp-lname" class="swal2-input" placeholder="Last Name">
-       <select id="swal-emp-role" class="swal2-input">
-          <option value="" disabled selected>Select Role</option>
-          <option value="Barista">Barista</option>
-          <option value="Cashier">Cashier</option>
-        </select>
-       <input id="swal-emp-phone" class="swal2-input" placeholder="Phone Number (09xxxxxxxxx)">
-       <span class="swal-feedback"></span>
-       <input id="swal-emp-email" class="swal2-input" type="email" placeholder="Email">
-       <span class="swal-feedback"></span>
-       <input id="swal-emp-username" class="swal2-input" placeholder="Username">
-       <span class="swal-feedback"></span>
-       <input id="swal-emp-password" class="swal2-input" type="password" placeholder="Password">
-       <span class="swal-feedback"></span>`,
-    showCancelButton: true,
-    confirmButtonText: 'Add',
+      `<div class="ae-grid">
+         <div>
+           <div class="ap-section-title">Employee</div>
+           <div class="ap-soft-field">
+             <label class="ap-label" for="swal-emp-fname">First Name</label>
+             <input id="swal-emp-fname" class="ae-input" placeholder="First Name" />
+             <div style="height:10px"></div>
+             <label class="ap-label" for="swal-emp-lname">Last Name</label>
+             <input id="swal-emp-lname" class="ae-input" placeholder="Last Name" />
+           </div>
+           <div style="height:14px"></div>
+           <div class="ap-section-title">Contacts</div>
+           <div class="ap-soft-field">
+             <label class="ap-label" for="swal-emp-phone">Phone Number</label>
+             <input id="swal-emp-phone" class="ae-input" placeholder="(09xxxxxxxxx)" />
+             <span class="swal-feedback"></span>
+             <div style="height:12px"></div>
+             <label class="ap-label" for="swal-emp-email">Email</label>
+             <input id="swal-emp-email" class="ae-input" type="email" placeholder="Email" />
+             <span class="swal-feedback"></span>
+           </div>
+           <div style="height:14px"></div>
+           <div class="ap-section-title">Account</div>
+           <div class="ap-soft-field">
+             <label class="ap-label" for="swal-emp-username">Username</label>
+             <input id="swal-emp-username" class="ae-input" placeholder="Username" />
+             <span class="swal-feedback"></span>
+             <div style="height:12px"></div>
+             <label class="ap-label" for="swal-emp-password">Password</label>
+             <input id="swal-emp-password" class="ae-input" type="password" placeholder="Password" />
+             <span class="swal-feedback"></span>
+           </div>
+         </div>
+         <div>
+           <div class="ap-section-title">Role</div>
+           <div class="ap-soft-field">
+             <div class="ap-image-wrap">
+               <img id="swal-emp-avatar" class="ap-image" alt="Role avatar" />
+             </div>
+             <div style="height:14px"></div>
+             <select id="swal-emp-role" class="ae-select">
+               <option value="" selected disabled>Select Role</option>
+               <option value="Barista">Barista</option>
+               <option value="Cashier">Cashier</option>
+             </select>
+           </div>
+         </div>
+       </div>`,
+  showCancelButton: true,
+  confirmButtonText: 'Add',
+  cancelButtonText: 'Cancel',
+    focusConfirm: false,
+  heightAuto: false,
+  scrollbarPadding: false,
     preConfirm: () => {
       const firstF = document.getElementById('swal-emp-fname').value.trim();
       const firstN = document.getElementById('swal-emp-lname').value.trim();
@@ -220,12 +289,12 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
       const email = document.getElementById('swal-emp-email').value.trim();
       const username = document.getElementById('swal-emp-username').value.trim();
       const password = document.getElementById('swal-emp-password').value;
- 
+
       if (!firstF || !firstN || !role || !isPhoneValid(number) || !email || !username || !isPasswordValid(password)) {
         Swal.showValidationMessage('Please fix all errors before submitting.');
         return false;
       }
-      
+
       document.getElementById('form-firstF').value = firstF;
       document.getElementById('form-firstN').value = firstN;
       document.getElementById('form-role').value = role;
@@ -241,6 +310,22 @@ document.getElementById('add-employee-btn').addEventListener('click', function (
 
       const passwordField = document.getElementById('swal-emp-password');
       passwordField.addEventListener('input', () => setSwalFieldState(passwordField, isPasswordValid(passwordField.value), 'Min. 6 chars, 1 uppercase, 1 number, 1 special char.'));
+
+      // Role-based avatar switching using uploaded images
+      const roleSelect = document.getElementById('swal-emp-role');
+      const avatarImg = document.getElementById('swal-emp-avatar');
+      const AVATARS = {
+        'Barista': '../images/barista.png',
+        'Cashier': '../images/cashier.png'
+      };
+      const DEFAULT_AVATAR = '../images/employ.png';
+      const updateAvatar = () => {
+        const v = roleSelect.value;
+        avatarImg.src = AVATARS[v] || DEFAULT_AVATAR;
+        avatarImg.alt = v ? `${v} avatar` : 'Employee avatar';
+      };
+      updateAvatar();
+      roleSelect.addEventListener('change', updateAvatar);
     }
   }).then((result) => {
     if (result.isConfirmed) {

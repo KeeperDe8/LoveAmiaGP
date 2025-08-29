@@ -55,7 +55,7 @@ $categories = $con->getAllCategories();
    #menu-scroll::-webkit-scrollbar-thumb { background-color: #c4b09a; border-radius: 10px; }
   </style>
  </head>
- <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
+ <body class="bg-[rgba(255,255,255,0.7)] h-screen flex overflow-hidden">
   <!-- Sidebar -->
 
 <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
@@ -89,25 +89,40 @@ $categories = $con->getAllCategories();
 
 
   <!-- Main content -->
-  <main class="flex-1 p-6 relative flex flex-col">
+  <main class="flex-1 p-6 relative flex flex-col min-h-0">
    <img alt="Background image of coffee beans" aria-hidden="true" class="absolute inset-0 w-full h-full object-cover opacity-20 -z-10" height="800" src="https://storage.googleapis.com/a1aa/image/22cccae8-cc1a-4fb3-7955-287078a4f8d4.jpg" width="1200"/>
    <header class="mb-4">
     <p class="text-xs text-gray-400 mb-0.5">Welcome to Love Amaiah</p>
     <h1 class="text-[#4B2E0E] font-semibold text-xl mb-3">Homepage</h1>
    </header>
+   <!-- Toolbar: Search + Sort -->
+   <div class="flex flex-wrap items-center gap-3 mb-3">
+     <div class="relative">
+       <input id="menu-search" type="text" placeholder="Search menu (e.g., caramel, matcha, waffle)" class="w-72 max-w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-[#c19a6b] focus:outline-none" />
+       <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"><i class="fa-solid fa-magnifying-glass"></i></span>
+     </div>
+     <select id="menu-sort" class="px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-[#c19a6b] focus:outline-none">
+       <option value="popular">Sort: Recommended</option>
+       <option value="price-asc">Price: Low to High</option>
+       <option value="price-desc">Price: High to Low</option>
+       <option value="name-asc">Name: A → Z</option>
+       <option value="name-desc">Name: Z → A</option>
+     </select>
+     <div class="text-sm text-gray-500">Tip: Click an image to see details.</div>
+   </div>
 
    <!-- Category buttons -->
    <nav aria-label="Coffee categories" id="category-nav"
   class="flex gap-3 mb-3 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-[#c4b09a] scrollbar-track-transparent px-1">
 </nav>
    <!-- Coffee Menu Grid -->
-   <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 max-h-[600px] overflow-y-auto shadow-lg flex-1" id="menu-scroll">
+  <section aria-label="Coffee menu" class="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl p-4 overflow-y-auto shadow-lg flex-1 min-h-0" id="menu-scroll">
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" id="menu-items"></div>
    </section>
   </main>
   
   <!-- Order summary -->
-  <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4">
+  <aside aria-label="Order summary" class="w-80 bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-lg flex flex-col justify-between p-4 overflow-hidden">
    <div>
     <?php
     $customer = isset($_GET['customer_name']) ? htmlspecialchars($_GET['customer_name']) : 'Guest';
@@ -136,16 +151,19 @@ echo json_encode(array_map(function($p) {
         'img' => !empty($p['ImagePath']) ? '../uploads/' . $p['ImagePath'] : 'https://placehold.co/80x80/png?text=' . urlencode($p['ProductName']),
         'alt' => $p['ProductName'],
         'category' => strtolower($p['ProductCategory']),
-        'price_id' => $p['PriceID']
+  'price_id' => $p['PriceID'],
+  'description' => $p['Description'] ?? '',
+  'allergen' => $p['Allergen'] ?? 'None'
     ];
 }, $products));
 ?>;
 
 
    const categories = <?php echo json_encode($categories); ?>;
+   const categoriesList = ['All', ...categories];
    const categoryNav = document.getElementById('category-nav');
    function renderCategories() {
-     categoryNav.innerHTML = categories.map((cat, idx) => `
+     categoryNav.innerHTML = categoriesList.map((cat, idx) => `
        <button aria-pressed="${idx === 0 ? 'true' : 'false'}"
          class="flex items-center gap-2
            ${idx === 0 ? 'bg-[#4B2E0E] text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700'}
@@ -164,12 +182,38 @@ echo json_encode(array_map(function($p) {
    const confirmBtn = document.getElementById("confirm-btn");
    const cancelBtn = document.getElementById("cancel-btn");
 
-   let order = {};
-   let currentCategory = categories.length > 0 ? categories[0].toLowerCase() : "";
+  let order = {};
+  let currentCategory = categoriesList.length > 0 ? categoriesList[0].toLowerCase() : "";
+  let currentSearch = '';
+  let currentSort = 'popular';
 
    function renderMenu() {
      menuContainer.innerHTML = "";
-     const filteredItems = menuData.filter(item => item.category === currentCategory);
+     let filteredItems = menuData.filter(item => {
+       const catOK = (currentCategory === 'all') || (item.category === currentCategory);
+       const q = currentSearch.trim().toLowerCase();
+       const searchOK = !q || (item.name.toLowerCase().includes(q) || (item.description||'').toLowerCase().includes(q));
+       return catOK && searchOK;
+     });
+     // sorting
+     filteredItems.sort((a,b)=>{
+       switch(currentSort){
+         case 'price-asc': return (a.price||0) - (b.price||0);
+         case 'price-desc': return (b.price||0) - (a.price||0);
+         case 'name-asc': return a.name.localeCompare(b.name);
+         case 'name-desc': return b.name.localeCompare(a.name);
+         default: return 0;
+       }
+     });
+
+     if (filteredItems.length === 0) {
+       const empty = document.createElement('div');
+       empty.className = 'col-span-full text-center text-gray-500 py-10';
+       empty.innerHTML = '<i class="fa-regular fa-face-frown mr-2"></i>No items match your filters.';
+       menuContainer.appendChild(empty);
+       return;
+     }
+
      filteredItems.forEach(item => {
        const isInOrder = order[item.id] !== undefined;
        const quantity = isInOrder ? order[item.id].quantity : 0;
@@ -178,10 +222,11 @@ echo json_encode(array_map(function($p) {
        article.setAttribute("aria-label", `${item.name} coffee item`);
        article.className = "bg-white rounded-lg shadow-md p-3 flex flex-col items-center";
 
-       const img = document.createElement("img");
+  const img = document.createElement("img");
        img.src = item.img;
        img.alt = item.alt;
-       img.className = "mb-2 w-20 h-20 object-cover rounded";
+  img.loading = 'lazy';
+  img.className = "mb-2 w-20 h-20 object-cover rounded";
 
        const h3 = document.createElement("h3");
        h3.className = "font-semibold text-sm text-[#4B2E0E] mb-1 text-center";
@@ -274,25 +319,34 @@ echo json_encode(array_map(function($p) {
        orderTotalEl.textContent = "₱ 0.00";
        confirmBtn.disabled = true;
        cancelBtn.disabled = true;
+       try { localStorage.removeItem('owner_cart'); } catch(e){}
        return;
      }
      let total = 0;
      entries.forEach(item => {
        total += item.price * item.quantity;
        const div = document.createElement("div");
-       div.className = "flex justify-between mb-1";
+       div.className = "flex justify-between items-center gap-2 mb-1";
        const spanName = document.createElement("span");
        spanName.className = "font-semibold";
        spanName.textContent = item.name;
        const spanPriceQty = document.createElement("span");
-       spanPriceQty.innerHTML = `<span class="font-semibold">₱ ${item.price.toFixed(2)}</span><span class="ml-1">x${item.quantity}</span>`;
+       spanPriceQty.innerHTML = `<span class=\"font-semibold\">₱ ${item.price.toFixed(2)}</span><span class=\"ml-1\">x${item.quantity}</span>`;
+       const rm = document.createElement('button');
+       rm.type = 'button';
+       rm.className = 'ml-2 text-red-600 hover:text-red-700 text-xs';
+       rm.title = 'Remove item';
+       rm.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+       rm.addEventListener('click', ()=>{ delete order[item.id]; renderMenu(); renderOrder(); });
        div.appendChild(spanName);
        div.appendChild(spanPriceQty);
+       div.appendChild(rm);
        orderList.appendChild(div);
      });
      orderTotalEl.innerHTML = `<span>₱</span> ${total.toFixed(2)}`;
      confirmBtn.disabled = false;
      cancelBtn.disabled = false;
+     try { localStorage.setItem('owner_cart', JSON.stringify(order)); } catch(e){}
    }
 
    cancelBtn.addEventListener("click", () => {
@@ -322,6 +376,27 @@ echo json_encode(array_map(function($p) {
        });
      });
    }
+
+   // Search and sort handlers
+   const searchInput = document.getElementById('menu-search');
+   const sortSelect = document.getElementById('menu-sort');
+   let searchTimer;
+   searchInput.addEventListener('input', () => {
+     clearTimeout(searchTimer);
+     searchTimer = setTimeout(()=>{ currentSearch = searchInput.value; renderMenu(); }, 150);
+   });
+   sortSelect.addEventListener('change', () => { currentSort = sortSelect.value; renderMenu(); });
+
+   // Load persisted cart if any
+   try {
+     const saved = localStorage.getItem('owner_cart');
+     if (saved) {
+       const parsed = JSON.parse(saved);
+       if (parsed && typeof parsed === 'object') {
+         order = Object.fromEntries(Object.entries(parsed).filter(([id, val]) => menuData.some(i=>i.id===id)));
+       }
+     }
+   } catch(e) {}
 
    document.getElementById("logout-btn").addEventListener("click", () => {
      Swal.fire({
@@ -423,6 +498,52 @@ echo json_encode(array_map(function($p) {
    renderMenu();
    renderOrder();
    attachCategoryEvents();
+
+   // Click image to show product info popup (non-intrusive, no design changes) hehe
+   menuContainer.addEventListener('click', (e) => {
+     const imgEl = e.target.closest('img');
+     if (!imgEl) return;
+     const article = imgEl.closest('article');
+     if (!article) return;
+  const name = (article.querySelector('h3')?.textContent || '').trim();
+  const price = (article.querySelector('p')?.textContent || '').trim();
+     const catPretty = currentCategory ? currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1) : '';
+     const imgSrc = imgEl.getAttribute('src');
+  // find the item in menuData to read description/allergens
+  const item = menuData.find(i => i.name === name && i.category === currentCategory);
+  const desc = item?.description || '';
+  const allergen = item?.allergen || 'None';
+
+    Swal.fire({
+      title: 'Product Information',
+      html: `
+        <div style="text-align:center;margin-bottom:12px">
+          <img src="${imgSrc}" alt="${name}" style="display:block;margin:0 auto;width:100%;max-width:100%;height:auto;max-height:50vh;object-fit:contain;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.12);" />
+        </div>
+        <div style="text-align:left;line-height:1.6">
+          <div><strong>Product Name:</strong> ${name}</div>
+          <div><strong>Category:</strong> ${catPretty}</div>
+          <div><strong>Price:</strong> ${price}</div>
+          ${desc ? `<div><strong>Description:</strong> ${desc}</div>` : ''}
+          <div><strong>Allergens:</strong> ${allergen}</div>
+        </div>
+      `,
+      confirmButtonColor: '#4B2E0E',
+      backdrop: false,
+      heightAuto: false,
+      scrollbarPadding: false,
+      didOpen: () => {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.paddingRight = '';
+      },
+      willClose: () => {
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.paddingRight = '';
+      }
+    });
+   });
   </script>
  </body>
 </html>

@@ -6,6 +6,29 @@ if (!isset($_SESSION['CustomerID'])) {
 }
 $customer = $_SESSION['CustomerFN'];
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+// Load products and group by category (SIGNATURES first)
+require_once('../classes/database.php');
+$db = new database();
+$allProducts = [];
+try { $allProducts = $db->getAllProductsWithPrice(); } catch (Exception $e) { $allProducts = []; }
+$byCategory = [];
+foreach ($allProducts as $prod) {
+  $cat = strtoupper(trim($prod['ProductCategory'] ?? 'OTHERS'));
+  if (!isset($byCategory[$cat])) $byCategory[$cat] = [];
+  $byCategory[$cat][] = $prod;
+}
+$orderedCategories = array_keys($byCategory);
+usort($orderedCategories, function($a, $b){
+  $aSig = (strpos($a, 'SIGNATURE') === 0);
+  $bSig = (strpos($b, 'SIGNATURE') === 0);
+  if ($aSig && !$bSig) return -1; if ($bSig && !$aSig) return 1; return strcmp($a, $b);
+});
+function short_desc($t, $max=110){ $t = trim((string)($t ?? '')); if ($t==='') return 'A Love Amaiah favorite — crafted with care.'; return (strlen($t) <= $max) ? $t : substr($t, 0, $max-1) . '…'; }
+// Build spotlight list (prefer signatures)
+$spotlightCats = array_values(array_filter(array_keys($byCategory), function($c){ return strpos($c,'SIGNATURE') === 0; }));
+$spotlightList = !empty($spotlightCats) ? ($byCategory[$spotlightCats[0]] ?? []) : (reset($byCategory) ?: []);
+if (is_array($spotlightList)) { shuffle($spotlightList); $spotlightList = array_slice($spotlightList, 0, 8); } else { $spotlightList = []; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -73,11 +96,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     .hero-text button:hover {
       background-color: rgba(255, 255, 255, 0.2);
     }
-    .coffee-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 2.5rem;
-    }
+  .coffee-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2rem; }
     .card {
       background-color: #444;
       border-radius: 16px;
@@ -107,6 +126,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
       font-size: 1em;
       line-height: 1.5;
     }
+  .section-title { font-size: 2.1em; font-weight: 800; color: #a17850; margin: 48px 0 18px; text-align: left; }
   </style>
 </head>
 <body class="flex min-h-screen bg-cover bg-center bg-no-repeat" style="background-image: url('../images/LAbg.png');">
@@ -131,40 +151,95 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   </button>
 </aside>
 
-<!-- Main Content (unchanged) -->
+<!-- Main Content -->
 <div class="main-content">
   <div class="hero">
     <img src="../images/mainpage_coffee.png" alt="Latte Art" />
     <div class="hero-text">
       <h1>Sip Happiness<br><span>One Cup at a Time</span></h1>
       <p>Begin your day with a cup of coffee—boost your energy, sharpen your focus, and set the tone for a productive, positive day ahead.</p>
-      <button onclick="window.location.href='customerpage.php'">Order Coffee</button>
+      <div class="flex justify-end gap-3">
+        <button onclick="window.location.href='customerpage.php'">Order Coffee</button>
+      </div>
     </div>
   </div>
+  <!-- No search/chips: keep it purely promotional -->
   <div class="coffee-cards">
     <div class="card">
-      <img src="../images/affogato.png" alt="Affogato">
+  <img src="../images/affogato.png" alt="Affogato" loading="lazy">
       <div class="card-body">
         <h3>Affogato</h3>
         <p>Espresso poured over vanilla ice cream — bold, creamy, and decadent.</p>
       </div>
     </div>
     <div class="card">
-      <img src="../images/caramel_cloud_latte.png" alt="Caramel Cloud Latte">
+  <img src="../images/caramel_cloud_latte.png" alt="Caramel Cloud Latte" loading="lazy">
       <div class="card-body">
         <h3>Caramel Cloud Latte</h3>
         <p>Fluffy foam, bold espresso, and silky caramel — heavenly in every sip.</p>
       </div>
     </div>
     <div class="card">
-      <img src="../images/cinnamon_macchiato.png" alt="Cinnamon Macchiato">
+  <img src="../images/cinnamon_macchiato.png" alt="Cinnamon Macchiato" loading="lazy">
       <div class="card-body">
         <h3>Cinnamon Macchiato</h3>
         <p>Warm cinnamon meets espresso and milk — sweet, spicy, and smooth.</p>
       </div>
     </div>
     <div class="card">
-      <img src="../images/iced_shaken_brownie.png" alt="Iced Brownie Espresso">
+  <img src="../images/iced_shaken_brownie.png" alt="Iced Brownie Espresso" loading="lazy">
+      <div class="card-body">
+        <h3>Iced Brownie Espresso</h3>
+        <p>Shaken espresso with rich brownie flavor — bold, cold, and energizing.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature Spotlight (horizontal scroll) -->
+  <?php if (!empty($spotlightList)) { ?>
+    <h2 class="section-title">Signature Spotlight</h2>
+    <div class="flex gap-4 overflow-x-auto pb-2" style="scrollbar-width: thin;">
+      <?php foreach ($spotlightList as $p) { 
+        $img = !empty($p['ImagePath']) ? ('../uploads/' . htmlspecialchars($p['ImagePath'])) : '../images/mainpage_coffee.png';
+        $desc = short_desc($p['Description'] ?? '');
+      ?>
+        <div class="min-w-[240px] max-w-[260px] card">
+          <img src="<?= $img ?>" alt="<?= htmlspecialchars($p['ProductName']) ?>" loading="lazy">
+          <div class="card-body">
+            <h3><?= htmlspecialchars($p['ProductName']) ?></h3>
+            <p><?= htmlspecialchars($desc) ?></p>
+          </div>
+        </div>
+      <?php } ?>
+    </div>
+  <?php } ?>
+
+  <!-- Featured Classics grid (use a couple of known favorites) -->
+  <h2 class="section-title">Featured Classics</h2>
+  <div class="coffee-cards">
+    <div class="card">
+      <img src="../images/affogato.png" alt="Affogato" loading="lazy">
+      <div class="card-body">
+        <h3>Affogato</h3>
+        <p>Espresso poured over vanilla ice cream — bold, creamy, and decadent.</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../images/caramel_cloud_latte.png" alt="Caramel Cloud Latte" loading="lazy">
+      <div class="card-body">
+        <h3>Caramel Cloud Latte</h3>
+        <p>Fluffy foam, bold espresso, and silky caramel — heavenly in every sip.</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../images/cinnamon_macchiato.png" alt="Cinnamon Macchiato" loading="lazy">
+      <div class="card-body">
+        <h3>Cinnamon Macchiato</h3>
+        <p>Warm cinnamon meets espresso and milk — sweet, spicy, and smooth.</p>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../images/iced_shaken_brownie.png" alt="Iced Brownie Espresso" loading="lazy">
       <div class="card-body">
         <h3>Iced Brownie Espresso</h3>
         <p>Shaken espresso with rich brownie flavor — bold, cold, and energizing.</p>
@@ -174,6 +249,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 </div>
 
 <script>
+  // (no search/filter JS — this page is purely promotional)
   document.getElementById('logout-btn').addEventListener('click', function(e) {
     e.preventDefault();
     Swal.fire({
@@ -192,4 +268,4 @@ $currentPage = basename($_SERVER['PHP_SELF']);
   });
 </script>
 </body>
-</html
+</html>
