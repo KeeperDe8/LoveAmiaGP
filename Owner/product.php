@@ -13,23 +13,23 @@ $sweetAlertConfig = "";
 // [IMAGE UPLOAD] config
 // uploads directory relative to this file (product.php is in Owner folder in your project)
 $uploadDir = __DIR__ . '/../uploads/';
-$webUploadDir = '../uploads/'; // used for src attribute in <img>
-$placeholderImage = 'placeholder.png'; // put ../uploads/placeholder.png in your uploads folder
+$webUploadDir = '../uploads/'; 
+$placeholderImage = 'placeholder.png'; 
 
 // ensure uploads directory exists
 if (!is_dir($uploadDir)) {
     @mkdir($uploadDir, 0755, true);
 }
 
-/*
-  HANDLE: Add Product (with image)
-  - previously you only added product & price via $con->addProduct(...)
-  - now we accept a file upload, validate and store it, then update product.ImagePath
-*/
+
 if (isset($_POST['add_product'])) {
   $ownerID = $_SESSION['OwnerID'];
   $productName = $_POST['productName'];
   $category = $_POST['category'];
+  $description = isset($_POST['description']) ? trim($_POST['description']) : '';
+  $allergen = isset($_POST['allergen']) ? strtoupper(trim($_POST['allergen'])) : 'NONE';
+  $allowedAllergens = ['MILK','SOY','TREE_NUTS','WHEAT','EGGS','GELATIN','FISH','NONE'];
+  if (!in_array($allergen, $allowedAllergens, true)) { $allergen = 'NONE'; }
   $price = $_POST['price'];
   $effectiveFrom = $_POST['effectiveFrom'];
   $effectiveTo = !empty($_POST['effectiveTo']) ? $_POST['effectiveTo'] : null;
@@ -66,7 +66,8 @@ if (isset($_POST['add_product'])) {
 
   // If no failure message yet, proceed to add product
   if ($sweetAlertConfig === "") {
-    $productID = $con->addProduct($productName, $category, $price, date('Y-m-d'), $effectiveFrom, $effectiveTo, $ownerID);
+  // addProduct now accepts description and allergen
+  $productID = $con->addProduct($productName, $category, $description, $allergen, $price, date('Y-m-d'), $effectiveFrom, $effectiveTo, $ownerID);
 
     if ($productID) {
       // update product row with ImagePath if an image was uploaded
@@ -96,6 +97,17 @@ if (isset($_POST['add_product'])) {
     } else {
       $sweetAlertConfig = "
       <script>
+      /* Enhanced SweetAlert2 form styling */
+      .swal2-popup .swal-section { text-align:left; margin-top: 0.25rem; margin-bottom: 0.5rem; }
+      .swal2-popup .swal-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; }
+      .swal2-popup .swal-row { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+      .swal2-popup .pill { display:inline-flex; align-items:center; margin: 0.125rem 0.25rem; cursor:pointer; }
+      .swal2-popup .pill input { display:none; }
+      .swal2-popup .pill span { border:1px solid rgba(75,46,14,0.25); color:#4B2E0E; padding:6px 12px; border-radius:9999px; font-size:0.85rem; background:#fff; transition:all .15s ease; }
+      .swal2-popup .pill input:checked + span { background:#4B2E0E; color:#fff; border-color:#4B2E0E; box-shadow:0 1px 0 rgba(0,0,0,0.04); }
+      .swal2-popup .swal2-input, .swal2-popup .swal2-textarea { border-color: rgba(75,46,14,0.25); }
+      .swal2-popup .swal2-file { width:100%; border:1px dashed rgba(75,46,14,0.35); padding:8px; border-radius:8px; background:#fff; }
+      .swal2-popup .hint { font-size:0.75rem; color:#6b7280; margin-top:2px; }
       document.addEventListener('DOMContentLoaded', function () {
         Swal.fire({
           icon: 'error',
@@ -346,6 +358,8 @@ if (isset($_POST['update_price_and_image'])) {
   <form id="add-product-form" method="POST" enctype="multipart/form-data" style="display:none;">
     <input type="hidden" name="productName" id="form-productName">
     <input type="hidden" name="category" id="form-category">
+  <input type="hidden" name="description" id="form-description">
+  <input type="hidden" name="allergen" id="form-allergen">
     <input type="hidden" name="price" id="form-price">
     <input type="hidden" name="effectiveFrom" id="form-effectiveFrom">
     <input type="hidden" name="effectiveTo" id="form-effectiveTo">
@@ -362,20 +376,59 @@ if (isset($_POST['update_price_and_image'])) {
 document.getElementById('add-product-btn').addEventListener('click', function (e) {
   e.preventDefault();
   const categories = <?php echo json_encode($con->getAllCategories()); ?>;
-  let categoryOptions = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    let categoryRadios = categories.map((cat, idx) => `
+        <label class="pill">
+          <input type="radio" name="swal-category" value="${cat}" ${idx===0?'checked':''}>
+          <span>${cat}</span>
+        </label>
+    `).join('');
+  const allergenOptions = [
+    {v:'MILK',t:'Milk'}, {v:'SOY',t:'Soy'}, {v:'TREE_NUTS',t:'Tree nuts'}, {v:'WHEAT',t:'Wheat'},
+    {v:'EGGS',t:'Eggs'}, {v:'GELATIN',t:'Gelatin'}, {v:'FISH',t:'Fish'}, {v:'NONE',t:'None'}
+  ];
+    let allergenRadios = allergenOptions.map((opt) => `
+        <label class="pill">
+          <input type="radio" name="swal-allergen" value="${opt.v}" ${opt.v==='NONE'?'checked':''}>
+          <span>${opt.t}</span>
+        </label>
+    `).join('');
   Swal.fire({
     title: 'Add Product',
     html: `
-      <input id="swal-product-name" class="swal2-input" placeholder="Product Name">
-      <select id="swal-category" class="swal2-input"><option value="">Select Category</option>${categoryOptions}</select>
-      <input id="swal-price" class="swal2-input" type="number" step="0.01" placeholder="Unit Price">
-      <p class="swal-input-label">Effective From</p>
-      <input id="swal-effectiveFrom" class="swal2-input" type="date">
-      <p class="swal-input-label">Effective To (Optional)</p>
-      <input id="swal-effectiveTo" class="swal2-input" type="date">
-      <p class="swal-input-label">Product Image (JPG/PNG/GIF, max 5MB)</p>
-      <input id="swal-product-image" type="file" accept="image/png, image/jpeg, image/gif" class="swal2-file">
-    `,
+        <div class="swal-section">
+          <input id="swal-product-name" class="swal2-input" placeholder="Product Name">
+        </div>
+        <div class="swal-section">
+          <p class="swal-input-label">Category</p>
+          <div id="swal-category-group" class="swal-row">${categoryRadios}</div>
+        </div>
+        <div class="swal-section">
+          <p class="swal-input-label">Description</p>
+          <textarea id="swal-description" class="swal2-textarea" placeholder="Short description (optional)"></textarea>
+        </div>
+        <div class="swal-section swal-grid">
+          <div>
+            <p class="swal-input-label">Unit Price</p>
+            <input id="swal-price" class="swal2-input" type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div>
+            <p class="swal-input-label">Effective From</p>
+            <input id="swal-effectiveFrom" class="swal2-input" type="date">
+          </div>
+          <div>
+            <p class="swal-input-label">Effective To (Optional)</p>
+            <input id="swal-effectiveTo" class="swal2-input" type="date">
+          </div>
+        </div>
+        <div class="swal-section">
+          <p class="swal-input-label">Allergen</p>
+          <div id="swal-allergen-group" class="swal-row">${allergenRadios}</div>
+        </div>
+        <div class="swal-section">
+          <p class="swal-input-label">Product Image <span class="hint">(JPG/PNG/GIF, max 5MB)</span></p>
+          <input id="swal-product-image" type="file" accept="image/png, image/jpeg, image/gif" class="swal2-file">
+        </div>
+      `,
     showCancelButton: true,
     confirmButtonText: 'Add',
     focusConfirm: false,
@@ -384,14 +437,18 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
     },
     preConfirm: () => {
       const productName = document.getElementById('swal-product-name').value.trim();
-      const category = document.getElementById('swal-category').value;
+      const categoryEl = document.querySelector('input[name="swal-category"]:checked');
+      const category = categoryEl ? categoryEl.value : '';
+      const description = document.getElementById('swal-description').value.trim();
       const price = document.getElementById('swal-price').value;
       const effectiveFrom = document.getElementById('swal-effectiveFrom').value;
       const effectiveTo = document.getElementById('swal-effectiveTo').value;
+      const allergenEl = document.querySelector('input[name="swal-allergen"]:checked');
+      const allergen = allergenEl ? allergenEl.value : 'NONE';
       const fileInput = document.getElementById('swal-product-image');
       // basic validation
-      if (!productName || !category || !price || !effectiveFrom) {
-        Swal.showValidationMessage('Product Name, Category, Price, and Effective From date are required.');
+      if (!productName || !category || !price || !effectiveFrom || !allergen) {
+        Swal.showValidationMessage('Product Name, Category, Price, Effective From, and Allergen are required.');
         return false;
       }
       if (!fileInput || fileInput.files.length === 0) {
@@ -412,6 +469,8 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
       // fill hidden form and submit (multipart)
       document.getElementById('form-productName').value = productName;
       document.getElementById('form-category').value = category;
+  document.getElementById('form-description').value = description;
+  document.getElementById('form-allergen').value = allergen;
       document.getElementById('form-price').value = price;
       document.getElementById('form-effectiveFrom').value = effectiveFrom;
       document.getElementById('form-effectiveTo').value = effectiveTo;
@@ -421,6 +480,8 @@ document.getElementById('add-product-btn').addEventListener('click', function (e
       const addFormData = new FormData();
       addFormData.append('productName', productName);
       addFormData.append('category', category);
+  addFormData.append('description', description);
+  addFormData.append('allergen', allergen);
       addFormData.append('price', price);
       addFormData.append('effectiveFrom', effectiveFrom);
       addFormData.append('effectiveTo', effectiveTo);
