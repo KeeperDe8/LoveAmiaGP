@@ -3,7 +3,14 @@
 class database {
 
     function opencon() {
-        return new PDO('mysql:host=localhost;dbname=amaihatest', 'root', '');
+        // Ensure PHP uses Philippine Standard Time
+        if(function_exists('date_default_timezone_set')){
+            date_default_timezone_set('Asia/Manila');
+        }
+        $pdo = new PDO('mysql:host=mysql.hostinger.com;dbname=u130699935_amaiah', 'u130699935_loveamaiah', 'iLoveAmaiah?143');
+        // Set MySQL session timezone to match (UTC+8, no DST)
+        try { $pdo->exec("SET time_zone = '+08:00'"); } catch (Exception $e) { /* ignore */ }
+        return $pdo;
     }
 
     function getOrdersForOwnerOrEmployee($loggedInID, $userType) {
@@ -509,5 +516,199 @@ class database {
         return ['labels' => $labels, 'data' => $data];
     }
     
+    // ================= Attendance / Time Logs =================
+    function ensureTimeLogsTable() {
+        $con = $this->opencon();
+        $sql = "CREATE TABLE IF NOT EXISTS time_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            EmployeeID INT NOT NULL,
+            log_date DATE NOT NULL,
+            clock_in DATETIME DEFAULT NULL,
+            clock_out DATETIME DEFAULT NULL,
+            break_start DATETIME DEFAULT NULL,
+            break_end DATETIME DEFAULT NULL,
+            clock_in_lat DECIMAL(10,7) DEFAULT NULL,
+            clock_in_lng DECIMAL(10,7) DEFAULT NULL,
+            clock_in_acc DECIMAL(10,2) DEFAULT NULL,
+            clock_out_lat DECIMAL(10,7) DEFAULT NULL,
+            clock_out_lng DECIMAL(10,7) DEFAULT NULL,
+            clock_out_acc DECIMAL(10,2) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_emp_date (EmployeeID, log_date),
+            FOREIGN KEY (EmployeeID) REFERENCES employee(EmployeeID) ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
+        $con->exec($sql);
+        // Attempt to add new columns if table already existed (ignore errors)
+        $maybeCols = [
+            'clock_in_lat DECIMAL(10,7) NULL',
+            'clock_in_lng DECIMAL(10,7) NULL',
+            'clock_in_acc DECIMAL(10,2) NULL',
+            'clock_out_lat DECIMAL(10,7) NULL',
+            'clock_out_lng DECIMAL(10,7) NULL',
+            'clock_out_acc DECIMAL(10,2) NULL'
+        ];
+        foreach($maybeCols as $def){
+            try { $con->exec("ALTER TABLE time_logs ADD COLUMN $def"); } catch (PDOException $e) { /* ignore */ }
+        }
+    }
+
+    function getTodayAttendance($employeeID) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT * FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE() LIMIT 1");
+        $stmt->execute([$employeeID]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return [
+                'clock_in' => null,
+                'clock_out' => null,
+                'break_start' => null,
+                'break_end' => null
+            ];
+        }
+        return [
+            'clock_in' => $row['clock_in'],
+            'clock_out' => $row['clock_out'],
+            'break_start' => $row['break_start'],
+            'break_end' => $row['break_end']
+        ];
+    }
+
+    function clockIn($employeeID) {
+        $this->ensureTimeLogsTable();
+        $con = $this->opencon();
+        // If already has a time log today with clock_in, block
+        $stmt = $con->prepare("SELECT clock_in FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE() LIMIT 1");
+        $stmt->execute([$employeeID]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing && $existing['clock_in']) {
+            return ['success' => false, 'message' => 'Already clocked in.'];
+        }
+        if ($existing) {
+            $stmt = $con->prepare("UPDATE time_logs SET clock_in = NOW(), clock_in_lat = COALESCE(?, clock_in_lat), clock_in_lng = COALESCE(?, clock_in_lng), clock_in_acc = COALESCE(?, clock_in_acc) WHERE EmployeeID = ? AND log_date = CURDATE()");
+            $stmt->execute([$_POST['lat'] ?? null, $_POST['lng'] ?? null, $_POST['acc'] ?? null, $employeeID]);
+        } else {
+            $stmt = $con->prepare("INSERT INTO time_logs (EmployeeID, log_date, clock_in, clock_in_lat, clock_in_lng, clock_in_acc) VALUES (?, CURDATE(), NOW(), ?, ?, ?)");
+            $stmt->execute([$employeeID, $_POST['lat'] ?? null, $_POST['lng'] ?? null, $_POST['acc'] ?? null]);
+        }
+        return ['success' => true, 'message' => 'Clocked in.'];
+    }
+
+    function startBreak($employeeID) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT clock_in, break_start, break_end, clock_out FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE() LIMIT 1");
+        $stmt->execute([$employeeID]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !$row['clock_in']) {
+            return ['success' => false, 'message' => 'Clock in first.'];
+        }
+        if ($row['clock_out']) {
+            return ['success' => false, 'message' => 'Already clocked out.'];
+        }
+        if ($row['break_start'] && !$row['break_end']) {
+            return ['success' => false, 'message' => 'Break already started.'];
+        }
+        $stmt = $con->prepare("UPDATE time_logs SET break_start = NOW(), break_end = NULL WHERE EmployeeID = ? AND log_date = CURDATE()");
+        $stmt->execute([$employeeID]);
+        return ['success' => true, 'message' => 'Break started.'];
+    }
+
+    function endBreak($employeeID) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT break_start, break_end FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE() LIMIT 1");
+        $stmt->execute([$employeeID]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !$row['break_start']) {
+            return ['success' => false, 'message' => 'No active break.'];
+        }
+        if ($row['break_end']) {
+            return ['success' => false, 'message' => 'Break already ended.'];
+        }
+        $stmt = $con->prepare("UPDATE time_logs SET break_end = NOW() WHERE EmployeeID = ? AND log_date = CURDATE()");
+        $stmt->execute([$employeeID]);
+        return ['success' => true, 'message' => 'Break ended.'];
+    }
+
+    function clockOut($employeeID) {
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT clock_in, clock_out FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE() LIMIT 1");
+        $stmt->execute([$employeeID]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !$row['clock_in']) {
+            return ['success' => false, 'message' => 'Clock in first.'];
+        }
+        if ($row['clock_out']) {
+            return ['success' => false, 'message' => 'Already clocked out.'];
+        }
+        $stmt = $con->prepare("UPDATE time_logs SET clock_out = NOW(), clock_out_lat = COALESCE(?, clock_out_lat), clock_out_lng = COALESCE(?, clock_out_lng), clock_out_acc = COALESCE(?, clock_out_acc) WHERE EmployeeID = ? AND log_date = CURDATE()");
+        $stmt->execute([$_POST['lat'] ?? null, $_POST['lng'] ?? null, $_POST['acc'] ?? null, $employeeID]);
+        return ['success' => true, 'message' => 'Clocked out.'];
+    }
+
+    // Fetch today's logs with geolocation for all employees (owner/admin view)
+    function getTodayLogsWithGeo($employeeID = null) {
+        $con = $this->opencon();
+        if ($employeeID) {
+            $stmt = $con->prepare("SELECT tl.*, e.EmployeeFN, e.EmployeeLN FROM time_logs tl JOIN employee e ON tl.EmployeeID = e.EmployeeID WHERE tl.log_date = CURDATE() AND tl.EmployeeID = ? ORDER BY tl.clock_in ASC");
+            $stmt->execute([$employeeID]);
+        } else {
+            $stmt = $con->prepare("SELECT tl.*, e.EmployeeFN, e.EmployeeLN FROM time_logs tl JOIN employee e ON tl.EmployeeID = e.EmployeeID WHERE tl.log_date = CURDATE() ORDER BY tl.clock_in ASC");
+            $stmt->execute();
+        }
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    function getTodayAttendanceSummaryForEmployees() {
+        $this->ensureTimeLogsTable();
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT e.EmployeeID, e.EmployeeFN, e.EmployeeLN, tl.clock_in, tl.clock_out, tl.break_start, tl.break_end
+            FROM employee e
+            LEFT JOIN time_logs tl ON tl.EmployeeID = e.EmployeeID AND tl.log_date = CURDATE()
+            ORDER BY e.EmployeeID DESC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Map of employeeID => today's attendance (aliased field names)
+    function getOwnerEmployeesTodayAttendance($ownerID) {
+        $this->ensureTimeLogsTable();
+        $con = $this->opencon();
+        $stmt = $con->prepare("SELECT 
+                e.EmployeeID,
+                tl.clock_in  AS clock_in_time,
+                tl.clock_out AS clock_out_time,
+                tl.break_start AS break_start_time,
+                tl.break_end AS break_end_time,
+                tl.clock_in_lat, tl.clock_in_lng, tl.clock_out_lat, tl.clock_out_lng,
+                CASE 
+                    WHEN tl.break_start IS NOT NULL AND (tl.break_end IS NULL OR tl.break_end < tl.break_start) THEN 1 
+                    ELSE 0 
+                END AS on_break
+            FROM employee e
+            LEFT JOIN time_logs tl 
+                ON tl.EmployeeID = e.EmployeeID AND tl.log_date = CURDATE()
+            WHERE e.OwnerID = ?
+            ORDER BY e.EmployeeID DESC");
+        $stmt->execute([$ownerID]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $map = [];
+        foreach ($rows as $r) { $map[$r['EmployeeID']] = $r; }
+        return $map;
+    }
+
+    // Owner manual reset of today's attendance for a given employee
+    function resetTodayAttendance($ownerID, $employeeID){
+        $con = $this->opencon();
+        // Verify employee belongs to owner
+        $stmt = $con->prepare("SELECT 1 FROM employee WHERE EmployeeID = ? AND OwnerID = ? LIMIT 1");
+        $stmt->execute([$employeeID, $ownerID]);
+        if(!$stmt->fetch()){
+            return ['success'=>false,'message'=>'Unauthorized employee.'];
+        }
+        // Delete today's time log (removes clock in/out/breaks). Could also UPDATE to null; deletion simpler.
+        $stmt = $con->prepare("DELETE FROM time_logs WHERE EmployeeID = ? AND log_date = CURDATE()");
+        $stmt->execute([$employeeID]);
+        return ['success'=>true,'message'=>'Attendance reset for today.'];
+    }
  
 }

@@ -11,7 +11,7 @@ if (isset($_SESSION['OwnerID'])) {
     $loggedInUserType = 'employee';
     $loggedInID = $_SESSION['EmployeeID'];
 } else {
-    header('Location: login.php');
+    header('Location: login');
     exit();
 }
 
@@ -39,7 +39,6 @@ foreach ($allOrders as $transaction) {
   <title>Transaction Records</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body {
@@ -68,8 +67,8 @@ foreach ($allOrders as $transaction) {
 </head>
 <body class="min-h-screen flex">
 <?php if ($loggedInUserType == 'owner'): ?>
-<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-    <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+    <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
+    <img src="../images/logo.png" alt="Logo" class="w-12 h-12 rounded-full mb-5" />
     <?php $current = basename($_SERVER['PHP_SELF']); ?>   
     <button title="Dashboard" onclick="window.location.href='../Owner/dashboard.php'"><i class="fas fa-chart-line text-xl <?= $current == 'dashboard.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i></button>
     <button title="Home" onclick="window.location.href='../Owner/mainpage.php'"><i class="fas fa-home text-xl <?= $current == 'mainpage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i></button>
@@ -82,7 +81,7 @@ foreach ($allOrders as $transaction) {
 </aside>
 <?php elseif ($loggedInUserType == 'employee'): ?>
 <aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-  <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+    <img src="../images/logo.png" alt="Logo" class="w-12 h-12 rounded-full mb-5" />
   <?php $current = basename($_SERVER['PHP_SELF']); ?>   
   <button title="Home" onclick="window.location.href='../Employee/employesmain.php'"><i class="fas fa-home text-xl <?= $current == 'employesmain.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i></button>
   <button title="Cart" onclick="window.location.href='../Employee/employeepage.php'"><i class="fas fa-shopping-cart text-xl <?= $current == 'employeepage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i></button>
@@ -262,6 +261,115 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ===== Realtime Orders (no refresh) =====
+(function(){
+    const customerWrap = document.getElementById('customer-orders');
+    const walkinWrap = document.getElementById('walkin-orders');
+    if(!customerWrap || !walkinWrap) return;
+    let maxId = 0;
+    document.querySelectorAll('#customer-orders [data-id], #walkin-orders [data-id]').forEach(btn=>{ const id=parseInt(btn.getAttribute('data-id'),10); if(id>maxId) maxId=id; });
+
+    function cardHTML(t){
+        const isCustomer = (parseInt(t.UserTypeID,10) === 3 && t.CustomerUsername);
+        const dateFmt = t.OrderDate ? new Date(t.OrderDate.replace(' ','T')).toLocaleString() : '';
+        const items = (t.OrderItems||'').split('\n').map(s=>s.trim()).filter(Boolean).map(s=>`<li>${s.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('');
+        return `<div class="border border-gray-200 rounded-lg p-4 bg-gray-50 shadow-sm mb-4" data-order-card="${t.OrderID}">
+            <p class="text-sm font-semibold text-[#4B2E0E] mb-1">Order #${t.OrderID}</p>
+            <p class="text-xs text-gray-600 mb-2">${ isCustomer?`Customer: ${t.CustomerUsername}<br>`:'' }Date: ${dateFmt}</p>
+            <ul class="text-sm text-gray-700 list-disc list-inside mb-2">${items || '<li>—</li>'}</ul>
+            <div class="flex justify-between items-center mt-2">
+                <span class="font-bold text-lg text-[#4B2E0E]">₱${parseFloat(t.TotalAmount||0).toFixed(2)}</span>
+                <div class="flex gap-2">
+                    <button class="bg-[#4B2E0E] hover:bg-[#3a240c] text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150" data-id="${t.OrderID}" data-status="Preparing Order"><i class="fas fa-utensils mr-1"></i> Prepare</button>
+                    <button class="bg-green-700 hover:bg-green-800 text-white px-3 py-1 rounded-lg text-sm shadow transition duration-150" data-id="${t.OrderID}" data-status="Order Ready"><i class="fas fa-check-circle mr-1"></i> Ready</button>
+                </div>
+            </div>
+            <div class="text-right text-xs text-gray-600 mt-1">Ref: ${(t.ReferenceNo||'N/A')}</div>
+            <div class="text-sm mt-2 text-gray-800 font-medium" id="status-${t.OrderID}"><span class="text-blue-700">Pending</span></div>
+        </div>`;
+    }
+
+    function attachHandlers(scope){
+        scope.querySelectorAll('button[data-status]').forEach(button=>{
+            if(button._bound) return; button._bound=true;
+            button.addEventListener('click',()=>{
+                const orderId = button.getAttribute('data-id');
+                const status = button.getAttribute('data-status');
+                const statusElement = document.getElementById(`status-${orderId}`);
+                if (statusElement) {
+                    const newStatusHTML = status === "Preparing Order"
+                            ? `<span class="text-orange-500 font-semibold">${status}</span>`
+                            : `<span class="text-green-700 font-semibold">${status}</span>`;
+                    statusElement.innerHTML = newStatusHTML;
+                    sessionStorage.setItem(`orderStatus-${orderId}`, newStatusHTML);
+                }
+                const parentDiv = button.closest('.flex.gap-2');
+                if (status === "Preparing Order") {
+                    button.disabled = true; button.classList.add('opacity-50','cursor-not-allowed');
+                } else if (status === "Order Ready") {
+                    if(parentDiv) parentDiv.querySelectorAll('button[data-status]').forEach(btn=>{ btn.disabled=true; btn.classList.add('opacity-50','cursor-not-allowed'); });
+                }
+            });
+        });
+    }
+
+    function restore(){
+        Object.keys(sessionStorage).forEach(key=>{
+            if(!key.startsWith('orderStatus-')) return;
+            const id = key.replace('orderStatus-','');
+            const el = document.getElementById(`status-${id}`);
+            if(!el) return;
+            const saved = sessionStorage.getItem(key)||'';
+            const normalized = saved.replace(/\bStatus:\s*/i, '');
+            el.innerHTML = normalized;
+            const card = el.closest('[data-order-card]') || el.closest('.border');
+            if(card){
+                const readyButton = card.querySelector('button[data-status="Order Ready"]');
+                const prepareButton = card.querySelector('button[data-status="Preparing Order"]');
+                const text = el.textContent||'';
+                if(text.includes('Order Ready')){ [readyButton,prepareButton].forEach(b=>{ if(b){ b.disabled=true; b.classList.add('opacity-50','cursor-not-allowed'); }}); }
+                else if(text.includes('Preparing Order')){ if(prepareButton){ prepareButton.disabled=true; prepareButton.classList.add('opacity-50','cursor-not-allowed'); } }
+            }
+        });
+    }
+
+    function paginateNow(){
+        paginate('customer-orders','customer-pagination',5);
+        paginate('walkin-orders','walkin-pagination',5);
+    }
+
+    function poll(){
+        fetch(`../ajax/orders_feed.php?since=${maxId}&_=${Date.now()}`)
+            .then(r=>r.json())
+            .then(j=>{
+                if(!j || !j.success || !Array.isArray(j.new) || j.new.length===0){ return; }
+                const fragCust = document.createDocumentFragment();
+                const fragWalk = document.createDocumentFragment();
+                j.new.forEach(t=>{
+                    const wrap = document.createElement('div');
+                    wrap.innerHTML = cardHTML(t);
+                    const card = wrap.firstElementChild;
+                    if(parseInt(t.UserTypeID,10) === 3 && t.CustomerUsername){ fragCust.prepend(card); }
+                    else { fragWalk.prepend(card); }
+                });
+                if(fragCust.childNodes.length){ customerWrap.prepend(fragCust); }
+                if(fragWalk.childNodes.length){ walkinWrap.prepend(fragWalk); }
+                attachHandlers(customerWrap); attachHandlers(walkinWrap);
+                restore();
+                maxId = j.max_id || maxId;
+                paginateNow();
+                try{ if(window.Swal && j.count){ Swal.fire({toast:true, position:'top-end', timer:1600, showConfirmButton:false, icon:'info', title:`${j.count} new order${j.count>1?'s':''}`}); } }catch(e){}
+            })
+            .catch(()=>{});
+    }
+
+    // Initial attach and restore for existing markup
+    attachHandlers(document);
+    restore();
+    // Start polling
+    setInterval(poll, 5000);
+})();
 </script>
 </body>
 </html>

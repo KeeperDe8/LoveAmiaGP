@@ -3,7 +3,7 @@
 session_start();
  
 if (!isset($_SESSION['OwnerID'])) {
-  header('Location: ../all/login.php');
+  header('Location: ../all/login');
   exit();
 }
  
@@ -91,28 +91,28 @@ if (isset($_POST['add_employee'])) {
 <body class="bg-[rgba(255,255,255,0.7)] min-h-screen flex">
  
 <!-- Sidebar -->
-<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg">
-    <img src="../images/logo.png" alt="Logo" class="w-10 h-10 rounded-full mb-4" />
+<aside class="bg-white bg-opacity-90 backdrop-blur-sm w-16 flex flex-col items-center py-6 space-y-8 shadow-lg la-sidebar">
+  <img src="../images/logo.png" alt="Logo" class="w-12 h-12 rounded-full mb-5" />
     <?php $current = basename($_SERVER['PHP_SELF']); ?>   
-    <button title="Dashboard" onclick="window.location.href='../Owner/dashboard.php'">
+  <button title="Dashboard" onclick="window.location.href='../Owner/dashboard'">
         <i class="fas fa-chart-line text-xl <?= $current == 'dashboard.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Home" onclick="window.location.href='../Owner/mainpage.php'">
+  <button title="Home" onclick="window.location.href='../Owner/mainpage'">
         <i class="fas fa-home text-xl <?= $current == 'mainpage.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Cart" onclick="window.location.href='../Owner/page.php'">
+  <button title="Cart" onclick="window.location.href='../Owner/page'">
         <i class="fas fa-shopping-cart text-xl <?= $current == 'page.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Order List" onclick="window.location.href='../all/tranlist.php'">
+  <button title="Order List" onclick="window.location.href='../all/tranlist'">
         <i class="fas fa-list text-xl <?= $current == 'tranlist.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Product List" onclick="window.location.href='../Owner/product.php'">
+  <button title="Product List" onclick="window.location.href='../Owner/product'">
         <i class="fas fa-box text-xl <?= $current == 'product.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Employees" onclick="window.location.href='../Owner/user.php'">
+  <button title="Employees" onclick="window.location.href='../Owner/user'">
         <i class="fas fa-users text-xl <?= $current == 'user.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
-    <button title="Settings" onclick="window.location.href='../all/setting.php'">
+  <button title="Settings" onclick="window.location.href='../all/setting'">
         <i class="fas fa-cog text-xl <?= $current == 'setting.php' ? 'text-[#C4A07A]' : 'text-[#4B2E0E]' ?>"></i>
     </button>
     <button id="logout-btn" title="Logout">
@@ -140,16 +140,28 @@ if (isset($_POST['add_employee'])) {
           <th class="py-2 px-3 w-[20%]">Name</th>
           <th class="py-2 px-3 w-[15%]">Role</th>
           <th class="py-2 px-3 w-[10%]">Status</th>
+          <th class="py-2 px-3 w-[15%]">Clock In</th>
+          <th class="py-2 px-3 w-[15%]">Clock Out</th>
+          <th class="py-2 px-3 w-[10%]">Clock In Location</th>
+          <th class="py-2 px-3 w-[10%]">Clock Out Location</th>
           <th class="py-2 px-3 w-[15%]">Phone</th>
           <th class="py-2 px-3 w-[20%]">Email</th>
           <th class="py-2 px-3 w-[15%]">Username</th>
           <th class="py-2 px-3 w-[10%] text-center">Actions</th>
+          <th class="py-2 px-3 w-[10%] text-center">Reset</th>
         </tr>
       </thead>
       <tbody id="employee-body">
         <?php
         $employees = array_reverse($con->getEmployee());
+        $attendanceMap = $con->getOwnerEmployeesTodayAttendance($_SESSION['OwnerID']);
         foreach ($employees as $employee) {
+          $aid = $employee['EmployeeID'];
+          $att = isset($attendanceMap[$aid]) ? $attendanceMap[$aid] : null;
+          $clockIn = $att && !empty($att['clock_in_time']) ? date('g:i A', strtotime($att['clock_in_time'])) : '';
+          $clockOut = $att && !empty($att['clock_out_time']) ? date('g:i A', strtotime($att['clock_out_time'])) : '';
+          $onBreak = $att && (!empty($att['on_break']) && intval($att['on_break']) === 1);
+          $breakStart = $att && !empty($att['break_start_time']) ? date('g:i A', strtotime($att['break_start_time'])) : '';
         ?>
         <tr class="border-b hover:bg-gray-50 <?= $employee['is_active'] == 0 ? 'bg-red-50 text-gray-500' : '' ?>">
           <td class="py-2 px-3"><?= htmlspecialchars($employee['EmployeeID']) ?></td>
@@ -160,6 +172,36 @@ if (isset($_POST['add_employee'])) {
               <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">Active</span>
             <?php else: ?>
               <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-red-600 bg-red-200">Archived</span>
+            <?php endif; ?>
+          </td>
+          <td class="py-2 px-3">
+            <?php if (!$att || empty($att['clock_in_time'])): ?>
+              <span class="text-xs font-semibold inline-block py-1 px-2 rounded-full text-gray-600 bg-gray-200">Not clocked in</span>
+            <?php elseif ($onBreak): ?>
+              <span class="text-xs font-semibold inline-block py-1 px-2 rounded-full text-amber-700 bg-amber-200">On break since <?= htmlspecialchars(date('M d g:i A', strtotime($att['break_start_time']))) ?></span>
+            <?php else: ?>
+              <span class="text-xs font-semibold inline-block py-1 px-2 rounded-full text-blue-700 bg-blue-200">Clocked in <?= htmlspecialchars(date('M d g:i A', strtotime($att['clock_in_time']))) ?></span>
+            <?php endif; ?>
+          </td>
+          <td class="py-2 px-3">
+            <?php if (!empty($att['clock_out_time'])): ?>
+              <span class="text-xs font-semibold inline-block py-1 px-2 rounded-full text-green-700 bg-green-200">Out <?= htmlspecialchars(date('M d g:i A', strtotime($att['clock_out_time']))) ?></span>
+            <?php else: ?>
+              <span class="text-xs font-semibold inline-block py-1 px-2 rounded-full text-gray-500 bg-gray-200">-</span>
+            <?php endif; ?>
+          </td>
+          <td class="py-2 px-3 text-xs">
+            <?php if (!empty($att['clock_in_time']) && isset($att['clock_in_lat']) && isset($att['clock_in_lng'])): ?>
+              <?= htmlspecialchars(round($att['clock_in_lat'],5).', '.round($att['clock_in_lng'],5)) ?>
+            <?php else: ?>
+              <span class="text-gray-400">-</span>
+            <?php endif; ?>
+          </td>
+          <td class="py-2 px-3 text-xs">
+            <?php if (!empty($att['clock_out_time']) && isset($att['clock_out_lat']) && isset($att['clock_out_lng'])): ?>
+              <?= htmlspecialchars(round($att['clock_out_lat'],5).', '.round($att['clock_out_lng'],5)) ?>
+            <?php else: ?>
+              <span class="text-gray-400">-</span>
             <?php endif; ?>
           </td>
           <td class="py-2 px-3"><?= htmlspecialchars($employee['E_PhoneNumber']) ?></td>
@@ -178,6 +220,18 @@ if (isset($_POST['add_employee'])) {
                  data-employee-name="<?= htmlspecialchars($employee['EmployeeFN'] . ' ' . $employee['EmployeeLN']) ?>">
                 <i class="fas fa-undo-alt"></i>
               </button>
+            <?php endif; ?>
+          </td>
+          <td class="py-2 px-3 text-center">
+            <?php if ($employee['is_active'] == 1): ?>
+              <button class="text-xs font-semibold inline-block py-1 px-2 rounded-full bg-red-500 text-white hover:bg-red-600 reset-att-btn" 
+                data-employee-id="<?= htmlspecialchars($employee['EmployeeID']) ?>"
+                data-employee-name="<?= htmlspecialchars($employee['EmployeeFN'] . ' ' . $employee['EmployeeLN']) ?>"
+                title="Reset today's attendance">
+                Reset
+              </button>
+            <?php else: ?>
+              <span class="text-gray-300 text-xs">N/A</span>
             <?php endif; ?>
           </td>
         </tr>
@@ -442,6 +496,38 @@ function paginateTable(containerId, paginationId, rowsPerPage = 15) {
 window.addEventListener('DOMContentLoaded', () => {
   paginateTable('employee-body', 'pagination');
   initializeActionButtons();
+  document.querySelectorAll('.reset-att-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      const empId = this.dataset.employeeId;
+      const empName = this.dataset.employeeName;
+      Swal.fire({
+        title: 'Reset today\'s attendance?',
+        text: `This will clear today\'s clock in/out and breaks for ${empName}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, reset',
+        cancelButtonText: 'Cancel'
+      }).then(res=>{
+        if(res.isConfirmed){
+          const fd = new FormData();
+          fd.append('employee_id', empId);
+          fetch('../ajax/reset_attendance.php', { method:'POST', body: fd })
+            .then(r=>r.json())
+            .then(j=>{
+              if(j.success){
+                Swal.fire('Reset','Attendance cleared.','success').then(()=>window.location.reload());
+              } else {
+                Swal.fire('Error', j.message || 'Failed', 'error');
+              }
+            })
+            .catch(()=> Swal.fire('Error','Network / server issue','error'));
+        }
+      });
+    });
+  });
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => {
@@ -449,7 +535,7 @@ document.getElementById('logout-btn').addEventListener('click', () => {
         title: 'Are you sure you want to log out?', icon: 'warning', showCancelButton: true,
         confirmButtonColor: '#4B2E0E', cancelButtonColor: '#d33', confirmButtonText: 'Yes, log out'
     }).then((result) => {
-        if (result.isConfirmed) { window.location.href = "../all/logout.php"; }
+  if (result.isConfirmed) { window.location.href = "../all/logout"; }
     });
 });
 
